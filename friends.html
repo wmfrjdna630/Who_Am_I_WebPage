@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Friends</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="stage">
+    <main class="frame" id="frameFriends">
+      <div class="canvas frame-friends" id="canvasFriends">
+
+        <!-- ✅ 실제 컨텐츠 래퍼(등장 애니메이션용) -->
+        <div class="friends-enter" id="friendsEnter">
+          <div class="friends-pattern" aria-hidden="true"></div>
+          <img class="friends-artboard" src="./assets/friends_back.png" alt="" draggable="false" />
+
+          <div class="friends-sub">여정엔 항상 친구가 필요한 법이랍니다,</div>
+          <div class="friends-title">그녀와 함께하는 귀엽고 깜찍한 친구를 골라주세요</div>
+
+          <div class="friends-num n1">1</div>
+          <div class="friends-num n2">2</div>
+          <div class="friends-num n3">3</div>
+          <div class="friends-num n4">4</div>
+
+          <button class="animal a1" type="button" aria-label="뱀 선택">
+            <img class="animal-basic" src="./assets/snake_basic.png" alt="" draggable="false" />
+            <img class="animal-color" src="./assets/snake.png" alt="" draggable="false" />
+          </button>
+
+          <button class="animal a2" type="button" aria-label="개구리 선택">
+            <img class="animal-basic" src="./assets/frog_basic.png" alt="" draggable="false" />
+            <img class="animal-color" src="./assets/frog.png" alt="" draggable="false" />
+          </button>
+
+          <button class="animal a3" type="button" aria-label="거미 선택">
+            <img class="animal-basic" src="./assets/spider_basic.png" alt="" draggable="false" />
+            <img class="animal-color" src="./assets/spider.png" alt="" draggable="false" />
+          </button>
+
+          <button class="animal a4" type="button" aria-label="도마뱀 선택">
+            <img class="animal-basic" src="./assets/91_basic.png" alt="" draggable="false" />
+            <img class="animal-color" src="./assets/91.png" alt="" draggable="false" />
+          </button>
+        </div>
+
+        <!-- ✅✅ overlay를 canvas 직속으로 둬서 1440×1024를 무조건 덮게 함 -->
+        <div class="friends-overlay" id="friendsOverlay" aria-hidden="true">
+          <div class="black-fill"></div>
+
+          <img
+            class="black-cloud"
+            id="blackCloud"
+            src="./assets/black_cloud.png"
+            alt=""
+            draggable="false"
+          />
+
+          <div class="cloud-text cloud-text-1" id="cloudText1">
+            맞아요,<br>눈썰미가 있으시군요 ~
+          </div>
+
+          <div class="cloud-text cloud-text-2" id="cloudText2">
+            그대, 행복한 악몽 되기를!
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ✅ index/moon과 완전히 동일한 스케일 계산
+    const BASE_W = 1440;
+    const BASE_H = 1024;
+
+    const frame = document.getElementById("frameFriends");
+    const canvas = document.getElementById("canvasFriends");
+
+    function setScale() {
+      const s = Math.min(
+        1,
+        (window.innerWidth - 40) / BASE_W,
+        (window.innerHeight - 40) / BASE_H
+      );
+      frame.style.setProperty("--s", s);
+      canvas.style.setProperty("--s", s);
+    }
+
+    window.addEventListener("resize", setScale);
+    setScale();
+
+    // (선택) friends 첫 등장 부드럽게
+    const enter = document.getElementById("friendsEnter");
+    requestAnimationFrame(() => enter?.classList.add("is-on"));
+
+    // ====== 동물 선택(1개) + black_cloud 연출 ======
+    const animals = Array.from(document.querySelectorAll(".animal"));
+    let selected = null;
+    let sequenceStarted = false;
+
+    const overlay = document.getElementById("friendsOverlay");
+    const cloud = document.getElementById("blackCloud");
+    const t1 = document.getElementById("cloudText1");
+    const t2 = document.getElementById("cloudText2");
+
+    const CLOUD_W = 974;
+    const CLOUD_H = 618;
+    const FRAME_W = 1440;
+    const FRAME_H = 1024;
+
+    function runCloudSequence() {
+      if (sequenceStarted) return;
+      sequenceStarted = true;
+
+      animals.forEach(btn => btn.disabled = true);
+
+      overlay.classList.add("is-on");
+
+      // 1) 중앙 등장 + 문구1
+      cloud.style.setProperty("--cloud-scale", "1");
+      t1.classList.add("is-on");
+
+      // 2) 전체 덮기 + 문구2
+      const frameDiag = Math.hypot(FRAME_W, FRAME_H);
+      const cloudBase = Math.max(CLOUD_W, CLOUD_H);
+      const coverScale = (frameDiag / cloudBase) * 1.35;
+
+      setTimeout(() => {
+        t1.classList.remove("is-on");
+        t2.classList.add("is-on");
+
+        overlay.classList.add("is-expand");
+        cloud.style.setProperty("--cloud-scale", String(coverScale));
+      }, 900);
+    }
+
+    animals.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (selected) selected.classList.remove("is-selected");
+        selected = btn;
+        selected.classList.add("is-selected");
+
+        runCloudSequence();
+      });
+    });
+  </script>
+</body>
+</html>

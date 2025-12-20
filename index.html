@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Desktop - 1</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="stage">
+    <main class="frame" id="frame">
+      <!-- ✅ 1440x1024 좌표계 캔버스 -->
+      <div class="canvas" id="canvas">
+
+        <div class="overlay" id="overlay" aria-hidden="true"></div>
+
+        <img class="moon-card" id="moonCard" src="./assets/the-moon.png" alt="" />
+
+        <img class="silhouette" id="silhouette" src="./assets/silhouette.png" alt="" />
+
+        <div class="txt name">jang yeri</div>
+
+        <div class="txt sex">sex.<br>female</div>
+
+        <div class="txt birth">birth. 2005<br>0609</div>
+
+        <div class="txt status">Currently&nbsp;<br>attending school</div>
+
+        <a class="txt uni link" href="https://www.khu.ac.kr/" target="_blank" rel="noopener noreferrer">
+          Kyunghee<br>University
+        </a>
+
+        <a class="txt dept link" href="https://id.khu.ac.kr/" target="_blank" rel="noopener noreferrer">
+          Department of<br>&nbsp;Industrial Design
+        </a>
+
+        <button class="txt email copy" type="button" data-copy="jyr569@khu.ac.kr" aria-label="이메일 주소 복사">
+          e-mail.<br>jyr569@khu.ac.kr
+        </button>
+
+        <a class="txt insta link" href="https://www.instagram.com/reieij/" target="_blank" rel="noopener noreferrer">
+          insta.<br>@reieij
+        </a>
+
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // =========================
+    // ✅ 핵심: 프레임 "실제 보이는 크기"를 통일시키는 스케일 계산
+    // =========================
+    const BASE_W = 1440;
+    const BASE_H = 1024;
+
+    const frame = document.getElementById("frame");
+    const canvas = document.getElementById("canvas");
+
+    function setScale() {
+      const s = Math.min(
+        1,
+        (window.innerWidth - 40) / BASE_W,
+        (window.innerHeight - 40) / BASE_H
+      );
+      frame.style.setProperty("--s", s);
+      canvas.style.setProperty("--s", s);
+    }
+
+    window.addEventListener("resize", setScale);
+    setScale();
+
+    // =========================
+    // 설정값 (피그마 기반)
+    // =========================
+    const FRAME_W = 1440;
+    const FRAME_H = 1024;
+
+    const CARD_W = 371;
+    const CARD_H = 636;
+    const CARD_TOP = 214;
+
+    const CARD_START_LEFT = (FRAME_W / 2) - CARD_W; // 349
+    const CARD_END_LEFT = 0;
+    const EDGE_EPS = 0.5;
+
+    const silhouette = document.getElementById("silhouette");
+    const moonCard = document.getElementById("moonCard");
+
+    // 이메일 복사
+    const copyBtn = document.querySelector(".copy");
+    copyBtn?.addEventListener("click", async () => {
+      const text = copyBtn.dataset.copy || "";
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+      }
+    });
+
+    let active = false;
+    let reachedEdge = false;
+    let finalTimer = null;
+
+    function applyCard(leftPx) {
+      moonCard.style.left = `${leftPx}px`;
+      moonCard.style.top = `${CARD_TOP}px`;
+      moonCard.style.width = `${CARD_W}px`;
+      moonCard.style.height = `${CARD_H}px`;
+    }
+
+    function getScale() {
+      // ✅ 이제 rect.width는 "실제 보이는 프레임 폭"이라서 scale이 안정적으로 나옴
+      const rect = frame.getBoundingClientRect();
+      return rect.width / FRAME_W;
+    }
+
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+    function setOverlay(on) {
+      canvas.classList.toggle("overlay-on", on);
+    }
+    function setFinal(on) {
+      canvas.classList.toggle("final-on", on);
+    }
+    function clearFinalTimer() {
+      if (finalTimer) {
+        clearTimeout(finalTimer);
+        finalTimer = null;
+      }
+    }
+
+    applyCard(CARD_START_LEFT);
+    moonCard.classList.add("is-hidden");
+
+    silhouette.addEventListener("click", () => {
+      active = !active;
+
+      if (active) {
+        moonCard.classList.remove("is-hidden");
+        reachedEdge = false;
+        clearFinalTimer();
+        setFinal(false);
+        setOverlay(false);
+        applyCard(CARD_START_LEFT);
+      } else {
+        moonCard.classList.add("is-hidden");
+        reachedEdge = false;
+        clearFinalTimer();
+        setFinal(false);
+        setOverlay(false);
+        applyCard(CARD_START_LEFT);
+      }
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!active) return;
+
+      const rect = frame.getBoundingClientRect();
+      const scale = getScale();
+
+      if (
+        e.clientX < rect.left || e.clientX > rect.right ||
+        e.clientY < rect.top  || e.clientY > rect.bottom
+      ) return;
+
+      const x = (e.clientX - rect.left) / scale;
+
+      const centerX = FRAME_W / 2;
+      const raw = (centerX - x) / centerX;
+      const t = clamp(raw, 0, 1);
+      const eased = easeOutCubic(t);
+
+      const left = lerp(CARD_START_LEFT, CARD_END_LEFT, eased);
+      applyCard(left);
+
+      if (left <= CARD_END_LEFT + EDGE_EPS) {
+        if (!reachedEdge) {
+          reachedEdge = true;
+          setOverlay(true);
+
+          clearFinalTimer();
+          finalTimer = setTimeout(() => {
+            setFinal(true);
+
+            setTimeout(() => {
+              window.location.href = "./moon.html";
+            }, 900);
+          }, 650);
+        }
+      } else {
+        if (reachedEdge) {
+          reachedEdge = false;
+          clearFinalTimer();
+          setFinal(false);
+          setOverlay(false);
+        }
+      }
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        active = false;
+        moonCard.classList.add("is-hidden");
+        reachedEdge = false;
+        clearFinalTimer();
+        setFinal(false);
+        setOverlay(false);
+        applyCard(CARD_START_LEFT);
+      }
+    });
+  </script>
+</body>
+</html>

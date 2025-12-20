@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Moon</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="stage">
+    <main class="frame" id="frameMoon">
+      <div class="canvas frame-moon" id="canvasMoon">
+
+        <div class="moon-pattern" id="moonPattern" aria-hidden="true"></div>
+
+        <img
+          class="moon-center-card"
+          id="moonCenterCard"
+          src="./assets/the-moon.png"
+          alt=""
+          draggable="false"
+        />
+
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ✅ index와 같은 스케일 계산
+    const BASE_W = 1440;
+    const BASE_H = 1024;
+  
+    const frame = document.getElementById("frameMoon");
+    const canvas = document.getElementById("canvasMoon");
+  
+    function setScale() {
+      const s = Math.min(
+        1,
+        (window.innerWidth - 40) / BASE_W,
+        (window.innerHeight - 40) / BASE_H
+      );
+      frame.style.setProperty("--s", s);
+      canvas.style.setProperty("--s", s);
+    }
+    window.addEventListener("resize", setScale);
+    setScale();
+  
+    // ======== Moon 애니메이션 ========
+    const FRAME_H = 1024;
+    const CARD_W = 371;
+    const CARD_H = 636;
+  
+    const GROW_MS = 2000;
+    const FADE_MS = 250;
+  
+    const card = document.getElementById("moonCenterCard");
+    const pattern = document.getElementById("moonPattern");
+  
+    card.style.width = CARD_W + "px";
+    card.style.height = CARD_H + "px";
+  
+    // 목표 스케일(좌표계 기준)
+    const TARGET_SCALE = FRAME_H / CARD_H;
+    const START_SCALE = 0.55;
+  
+    const EDGE_EPS_PX = 0.5; // ✅ index의 EDGE_EPS 감각과 동일하게 0.5px
+  
+    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+  
+    let done = false;
+  
+    function finishAtContact() {
+      if (done) return;
+      done = true;
+  
+      // 닿는 순간 정확히 고정
+      card.style.setProperty("--scale", TARGET_SCALE);
+  
+      // 사라지고 패턴 등장
+      card.classList.add("moon-card-hide");
+      setTimeout(() => {
+        pattern.classList.add("is-on");
+
+         // ✅ friends로 이동 (패턴이 보인 다음 이동)
+        setTimeout(() => {
+          window.location.href = "./friends.html";
+        }, 650); // 패턴 보여주는 시간(원하는 값으로 조절 가능)
+      }, FADE_MS);
+    }
+  
+    const start = performance.now();
+    function tick(now) {
+      if (done) return;
+  
+      const t = Math.min(1, (now - start) / GROW_MS);
+      const e = easeOutCubic(t);
+  
+      const s = lerp(START_SCALE, TARGET_SCALE, e);
+      card.style.setProperty("--scale", s);
+  
+      // ✅ “시간 종료”보다 “실제 닿음”을 우선 판정
+      // requestAnimationFrame 타이밍 상 최신 transform 반영 후 rect 측정되도록 다음 프레임에서 비교하는 게 가장 깔끔하지만,
+      // 여기선 매 프레임 측정으로도 충분히 안정적입니다.
+      const frameRect = frame.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+  
+      if (cardRect.height >= frameRect.height - EDGE_EPS_PX) {
+        return finishAtContact();
+      }
+  
+      if (t < 1) return requestAnimationFrame(tick);
+  
+      // 혹시 환경에 따라 rect 판정이 안 걸리면(거의 없음) 최종 안전장치
+      finishAtContact();
+    }
+  
+    requestAnimationFrame(tick);
+  </script>
+  
+</body>
+</html>
