@@ -1,423 +1,573 @@
 @font-face {
-    font-family: "Pretendard";
-    src: url("./fonts/PretendardVariable.ttf") format("truetype");
-    font-weight: 100 900;
-    font-style: normal;
-    font-display: swap;
-  }
-  
-  /* ✅ soya_ssal9 폰트 등록 (fonts 폴더에 소야쌀9.ttf가 있어야 함) */
-  @font-face {
-    font-family: "soya_ssal9";
-    src: url("./fonts/소야쌀9.ttf") format("truetype");
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
-  }
-  
-  * { box-sizing: border-box; }
-  html, body {
-    width: 100%;
-    height: 100%;
-    overflow: hidden; /* ✅ 스크롤바 자체를 없애서 100vw 차이 방지 */
-  }
-  
-  body{
-    margin:0;
-    background:#000;            /* ✅ 바깥은 무조건 검정 */
-    min-height:100vh;
-  }
-  
-  /* ✅ 화면 중앙 정렬 */
-  .stage{
-    width:100vw;
-    height:100vh;
-    display:grid;
-    place-items:center;
-    overflow:hidden;
-  }
-  
-  /* ✅ 프레임(=작품 화면)의 "실제 보이는 크기"를 고정
-     - JS가 --s(스케일)을 계산해서 넣어줄 거임 */
-  .frame{
-    position:relative;
-    width: calc(1440px * var(--s, 1));
-    height: calc(1024px * var(--s, 1));
-    overflow:hidden;
-  }
-  
-  /* ✅ 내부 캔버스는 항상 1440x1024 좌표계 유지 */
-  .canvas{
-    position:absolute;
-    left:0; top:0;
-    width:1440px;
-    height:1024px;
-    transform-origin: top left;
-    transform: scale(var(--s, 1));
-  }
-  
-  /* ===============================
-     index에서 쓰는 요소들
-  =============================== */
-  .overlay{
-    position:absolute;
-    inset:0;
-    pointer-events:none;
-    opacity:0;
-    transition: opacity 360ms ease, background-color 900ms ease;
-    z-index:10;
-  }
-  
-  .canvas.overlay-on .overlay{
-    opacity:1;
-    background: rgba(255, 249, 235, 0.62);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-  }
-  
-  .canvas.final-on{
-    background:#FFF9EB;
-    transition: background-color 900ms ease;
-  }
-  
-  .canvas.final-on .overlay{
-    background:#FFF9EB;
-  }
-  
-  .canvas.final-on .moon-card,
-  .canvas.final-on .silhouette,
-  .canvas.final-on .txt{
-    transition: opacity 900ms ease;
-    opacity:0;
-  }
-  
-  /* The Moon 카드 (index) */
-  .moon-card{
-    position:absolute;
-    width:371px;
-    height:636px;
-    top:214px;
-    left:349px;
-    display:block;
-    z-index:30;
-    user-select:none;
-    -webkit-user-drag:none;
-  }
-  
-  .moon-card.is-hidden{
-    opacity:0;
-    pointer-events:none;
-  }
-  
-  /* 실루엣 */
-  .silhouette{
-    position:absolute;
-    width:459px;
-    height:811px;
-    left: calc(50% - 459px/2 - 0.5px);
-    top:126px;
-    object-fit:contain;
-    display:block;
-    z-index:35;
-    cursor:pointer;
-    user-select:none;
-    -webkit-user-drag:none;
-  }
-  
-  /* 텍스트 */
-  .txt{
-    position:absolute;
-    font-family:"Pretendard";
-    font-weight:400;
-    font-size:20px;
-    line-height:24px;
-    letter-spacing:0.56em;
-    color:#fff;
-    white-space: pre-line;
-    z-index:20;
-  }
-  
-  /* 링크 스타일 */
-  .link{
-    text-decoration:none;
-    color:#fff;
-    cursor:pointer;
-  }
-  .copy{
-    background:transparent;
-    border:0;
-    padding:0;
-    color:#fff;
-    cursor:pointer;
-    text-align:left;
-  }
-  .link:hover, .copy:hover{ opacity:0.75; }
-  
-  /* 좌표 */
-  .name { left: 279px; top: 171px; }
-  .sex { left: 174px; top: 328px; text-align:right; }
-  .birth { left: 200px; top: 508px; text-align:right; }
-  .status { left: 62px; top: 676px; text-align:right; }
-  .uni { left: 1008px; top: 195px; }
-  .dept { left: 961px; top: 359px; }
-  .email { left: 994px; top: 566px; }
-  .insta { left: 1125px; top: 773px; }
-  
-  /* ===============================
-     MOON PAGE
-  =============================== */
-  .canvas.frame-moon{
-    background:#FFF9EB; /* 프레임 내부만 베이지 */
-  }
-  
-  .moon-center-card{
-    position:absolute;
-    left:50%;
-    top:50%;
-    transform: translate(-50%, -50%) scale(var(--scale, 1));
-    transform-origin:center center;
-    display:block;
-    user-select:none;
-    -webkit-user-drag:none;
-    will-change: transform, opacity;
-    transition: opacity 250ms ease;
-    z-index:5;
-  }
-  
-  .moon-card-hide{
-    opacity:0;
-    pointer-events:none;
-  }
-  
-  .moon-pattern{
-    position:absolute;
-    inset:0;
-    opacity:0;
-    transition: opacity 450ms ease;
-    pointer-events:none;
-  
-    background-image: url("./assets/moon-pattern.png");
-    background-repeat: repeat;
-    background-size: 1000px 1000px; /* 유지 */
-  
-    z-index:1;
-  }
-  
-  .moon-pattern.is-on{ opacity:1; }
-  
-  /* ===============================
-     FRIENDS (Desktop - 16)
-  =============================== */
-  .canvas.frame-friends{
-    background:#FFF9EB;
-  }
-  
-  /* ✅ friends 등장 애니메이션 래퍼 */
-  .friends-enter{
-    position:absolute;
-    inset:0;
-    opacity:0;
-    transform: scale(0.985);
-    transform-origin: 50% 50%;
-    transition: opacity 650ms ease, transform 650ms ease;
-  }
-  
-  .friends-enter.is-on{
-    opacity:1;
-    transform: scale(1);
-  }
-  
-  /* 패턴: moon과 동일 */
-  .friends-pattern{
-    position:absolute;
-    inset:0;
-    pointer-events:none;
-    z-index:0;
-  
-    background-image: url("./assets/moon-pattern.png");
-    background-repeat: repeat;
-    background-size: 1000px 1000px;
-  }
-  
-  /* 배경 아트보드: 가로 1440 기준 중앙 배치 */
-  .friends-artboard{
-    position:absolute;
-    left:50%;
-    top:50%;
-    transform: translate(-50%, -50%);
-    width:1440px;
-    height:auto;
-  
-    display:block;
-    pointer-events:none;
-    z-index:1;
-  }
-  
-  /* 문구 */
-  .friends-title{
-    position:absolute;
-    width:664px;
-    height:48px;
-    left: calc(50% - 664px/2);
-    top:238px;
-  
-    font-family:'soya_ssal9';
-    font-style: normal;
-    font-weight:400;
-    font-size:40px;
-    line-height:48px;
-  
-    color:#FFFFFF;
-    z-index:10;
-  }
-  
-  .friends-sub{
-    position:absolute;
-    width:555px;
-    height:24px;
-    left: calc(50% - 555px/2 + 0.5px);
-    top:210px;
-  
-    font-family:'soya_ssal9';
-    font-style: normal;
-    font-weight:400;
-    font-size:19px;          /* ✅ 1 낮춤 */
-    line-height:24px;
-    letter-spacing:0.71em;
-  
-    color:#FFFFFF;
-    z-index:10;
-  }
-  
-  /* 번호 */
-  .friends-num{
-    position:absolute;
-    font-family:'Passero One';
-    font-style: normal;
-    font-weight:400;
-    font-size:40px;
-    line-height:48px;
-    color:#000000;
-    z-index:12;
-  }
-  
-  .friends-num.n1{ left:364px; top:352px; font-size:36px; line-height:43px; }
-  .friends-num.n2{ left:482px; top:582px; }
-  .friends-num.n3{ left:823px; top:580px; }
-  .friends-num.n4{ left:1053px; top:344px; }
-  
-  /* 동물 버튼 */
-  .animal{
-    position:absolute;
-    background:transparent;
-    border:0;
-    padding:0;
-    cursor:pointer;
-    z-index:20;
-    outline:none;
-  }
-  
-  /* 이미지 두 장 겹침 */
-  .animal-basic,
-  .animal-color{
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
-    object-fit:contain;
-    user-select:none;
-    -webkit-user-drag:none;
-  }
-  
-  /* ✅ 교체 방식: 기본 보임 / 컬러 숨김 */
-  .animal-basic{ opacity:1; }
-  .animal-color{ opacity:0; pointer-events:none; }
-  
-  /* hover 시 교체 */
-  .animal:hover .animal-basic{ opacity:0; }
-  .animal:hover .animal-color{ opacity:1; }
-  
-  /* 선택 고정 */
-  .animal.is-selected .animal-basic{ opacity:0; }
-  .animal.is-selected .animal-color{ opacity:1; }
-  
-  /* 피그마 확정 좌표 */
-  .animal.a1{ left: 310px; top: 344px; width: 254px; height: 295px; }      /* snake */
-  .animal.a2{ left: 492px; top: 610px; width: 198px; height: 204px; }      /* frog */
-  .animal.a3{ left: 790px; top: 651px; width: 249px; height: 149px; }      /* spider */
-  .animal.a4{ left: 851px; top: 368px; width: 284.5px; height: 216px; }    /* 91 */
-  
+  font-family: "Pretendard";
+  src: url("./fonts/PretendardVariable.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ✅ soya_ssal9 폰트 등록 (fonts 폴더에 소야쌀9.ttf가 있어야 함) */
+@font-face {
+  font-family: "soya_ssal9";
+  src: url("./fonts/소야쌀9.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* ✅ 스크롤바 자체를 없애서 100vw 차이 방지 */
+}
+
+body{
+  margin:0;
+  background:#000;            /* ✅ 바깥은 무조건 검정 */
+  min-height:100vh;
+}
+
+/* ✅ 화면 중앙 정렬 */
+.stage{
+  width:100vw;
+  height:100vh;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+}
+
+/* ✅ 프레임(=작품 화면)의 "실제 보이는 크기"를 고정
+   - JS가 --s(스케일)을 계산해서 넣어줄 거임 */
+.frame{
+  position:relative;
+  width: calc(1440px * var(--s, 1));
+  height: calc(1024px * var(--s, 1));
+  overflow:hidden;
+}
+
+/* ✅ 내부 캔버스는 항상 1440x1024 좌표계 유지 */
+.canvas{
+  position:absolute;
+  left:0; top:0;
+  width:1440px;
+  height:1024px;
+  transform-origin: top left;
+  transform: scale(var(--s, 1));
+}
+
+/* ===============================
+   index에서 쓰는 요소들
+=============================== */
+.overlay{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  opacity:0;
+  transition: opacity 360ms ease, background-color 900ms ease;
+  z-index:10;
+}
+
+.canvas.overlay-on .overlay{
+  opacity:1;
+  background: rgba(255, 249, 235, 0.62);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.canvas.final-on{
+  background:#FFF9EB;
+  transition: background-color 900ms ease;
+}
+
+.canvas.final-on .overlay{
+  background:#FFF9EB;
+}
+
+/* ✅ moon/sun 둘 다 final-on에서 함께 사라지게 */
+.canvas.final-on .moon-card,
+.canvas.final-on .sun-card,
+.canvas.final-on .silhouette,
+.canvas.final-on .txt{
+  transition: opacity 900ms ease;
+  opacity:0;
+}
+
+/* The Moon 카드 (index) */
+.moon-card{
+  position:absolute;
+  width:371px;
+  height:636px;
+  top:214px;
+  left:349px;
+  display:block;
+  z-index:30;
+  user-select:none;
+  -webkit-user-drag:none;
+}
+
+.moon-card.is-hidden{
+  opacity:0;
+  pointer-events:none;
+}
+
+/* The Sun 카드 (index) */
+.sun-card{
+  position:absolute;
+  width:371px;
+  height:636px;
+  top:214px;
+  left:720px; /* JS가 매번 left를 덮어쓰지만 기본값은 중심선 */
+  display:block;
+  z-index:30;
+  user-select:none;
+  -webkit-user-drag:none;
+}
+.sun-card.is-hidden{
+  opacity:0;
+  pointer-events:none;
+}
+
+/* 실루엣 */
+.silhouette{
+  position:absolute;
+  width:459px;
+  height:811px;
+  left: calc(50% - 459px/2 - 0.5px);
+  top:126px;
+  object-fit:contain;
+  display:block;
+  z-index:35;
+  cursor:pointer;
+  user-select:none;
+  -webkit-user-drag:none;
+}
+
+/* 텍스트 */
+.txt{
+  position:absolute;
+  font-family:"Pretendard";
+  font-weight:400;
+  font-size:20px;
+  line-height:24px;
+  letter-spacing:0.56em;
+  color:#fff;
+  white-space: pre-line;
+  z-index:20;
+}
+
+/* 링크 스타일 */
+.link{
+  text-decoration:none;
+  color:#fff;
+  cursor:pointer;
+}
+.copy{
+  background:transparent;
+  border:0;
+  padding:0;
+  color:#fff;
+  cursor:pointer;
+  text-align:left;
+}
+.link:hover, .copy:hover{ opacity:0.75; }
+
+/* 좌표 */
+.name { left: 279px; top: 171px; }
+.sex { left: 174px; top: 328px; text-align:right; }
+.birth { left: 200px; top: 508px; text-align:right; }
+.status { left: 62px; top: 676px; text-align:right; }
+.uni { left: 1008px; top: 195px; }
+.dept { left: 961px; top: 359px; }
+.email { left: 994px; top: 566px; }
+.insta { left: 1125px; top: 773px; }
+
+/* ===============================
+   MOON PAGE
+=============================== */
+.canvas.frame-moon{
+  background:#FFF9EB; /* 프레임 내부만 베이지 */
+}
+
+.moon-center-card{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform: translate(-50%, -50%) scale(var(--scale, 1));
+  transform-origin:center center;
+  display:block;
+  user-select:none;
+  -webkit-user-drag:none;
+  will-change: transform, opacity;
+  transition: opacity 250ms ease;
+  z-index:5;
+}
+
+.moon-card-hide{
+  opacity:0;
+  pointer-events:none;
+}
+
+.moon-pattern{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  transition: opacity 450ms ease;
+  pointer-events:none;
+
+  background-image: url("./assets/moon-pattern.png");
+  background-repeat: repeat;
+
+  /* ✅ 핵심: 캔버스 비율에 맞춘 타일 크기 */
+  background-size: 1440px 1024px;
+  background-position: 0 0;
+
+  /* ✅ scale + repeat에서 생기는 미세 줄 방지 */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+
+  z-index:1;
+}
+
+.moon-pattern.is-on{ opacity:1; }
+
+/* ===============================
+   SUN PAGE
+=============================== */
+.canvas.frame-sun{
+  background:#FFF9EB; /* ✅ 기존 베이지 유지 */
+}
+
+.sun-center-card{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform: translate(-50%, -50%) scale(var(--scale, 1));
+  transform-origin:center center;
+  display:block;
+  user-select:none;
+  -webkit-user-drag:none;
+  will-change: transform, opacity;
+  transition: opacity 250ms ease;
+  z-index:5;
+}
+
+.sun-card-hide{
+  opacity:0;
+  pointer-events:none;
+}
+
+.sun-pattern{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  transition: opacity 450ms ease;
+  pointer-events:none;
+
+  background-image: url("./assets/sun-pattern.png");
+  background-repeat: repeat;
+
+  /* ✅ 핵심: 1000x1000 금지, 원본(피그마) 기반 타일 크기로 */
+  background-size: 1440px 1080px;
+  background-position: 0 0;
+
+  /* ✅ 스케일 변환에서 생기는 미세 줄(시접) 방지용 */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+
+  z-index:1;
+}
+
+.sun-pattern.is-on{ opacity:1; }
+
+
+/* ===============================
+   FRIENDS (Desktop - 16)
+=============================== */
+.canvas.frame-friends{
+  background:#FFF9EB;
+}
+
+/* ✅ friends 등장 애니메이션 래퍼 */
+.friends-enter{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  transform: scale(0.985);
+  transform-origin: 50% 50%;
+  transition: opacity 650ms ease, transform 650ms ease;
+}
+
+.friends-enter.is-on{
+  opacity:1;
+  transform: scale(1);
+}
+
+/* 패턴: moon과 동일 */
+.friends-pattern{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:0;
+
+  background-image: url("./assets/moon-pattern.png");
+  background-repeat: repeat;
+
+  /* ✅ moon과 완전 동일하게 맞춤 (1000x1000 금지) */
+  background-size: 1440px 1024px;
+  background-position: 0 0;
+
+  /* ✅ scale+repeat에서 생기는 미세 seam 방지 */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* 배경 아트보드: 가로 1440 기준 중앙 배치 */
+.friends-artboard{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform: translate(-50%, -50%);
+  width:1440px;
+  height:auto;
+
+  display:block;
+  pointer-events:none;
+  z-index:1;
+}
+
+/* 문구 */
+.friends-title{
+  position:absolute;
+  width:664px;
+  height:48px;
+  left: calc(50% - 664px/2);
+  top:238px;
+
+  font-family:'soya_ssal9';
+  font-style: normal;
+  font-weight:400;
+  font-size:40px;
+  line-height:48px;
+
+  color:#FFFFFF;
+  z-index:10;
+}
+
+.friends-sub{
+  position:absolute;
+  width:555px;
+  height:24px;
+  left: calc(50% - 555px/2 + 0.5px);
+  top:210px;
+
+  font-family:'soya_ssal9';
+  font-style: normal;
+  font-weight:400;
+  font-size:19px;          /* ✅ 1 낮춤 */
+  line-height:24px;
+  letter-spacing:0.71em;
+
+  color:#FFFFFF;
+  z-index:10;
+}
+
+/* 번호 */
+.friends-num{
+  position:absolute;
+  font-family:'Passero One';
+  font-style: normal;
+  font-weight:400;
+  font-size:40px;
+  line-height:48px;
+  color:#000000;
+  z-index:12;
+}
+
+.friends-num.n1{ left:364px; top:352px; font-size:36px; line-height:43px; }
+.friends-num.n2{ left:482px; top:582px; }
+.friends-num.n3{ left:823px; top:580px; }
+.friends-num.n4{ left:1053px; top:344px; }
+
+/* 동물 버튼 */
+.animal{
+  position:absolute;
+  background:transparent;
+  border:0;
+  padding:0;
+  cursor:pointer;
+  z-index:20;
+  outline:none;
+}
+
+/* 이미지 두 장 겹침 */
+.animal-basic,
+.animal-color{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  user-select:none;
+  -webkit-user-drag:none;
+}
+
+/* ✅ 교체 방식: 기본 보임 / 컬러 숨김 */
+.animal-basic{ opacity:1; }
+.animal-color{ opacity:0; pointer-events:none; }
+
+/* hover 시 교체 */
+.animal:hover .animal-basic{ opacity:0; }
+.animal:hover .animal-color{ opacity:1; }
+
+/* 선택 고정 */
+.animal.is-selected .animal-basic{ opacity:0; }
+.animal.is-selected .animal-color{ opacity:1; }
+
+/* 피그마 확정 좌표 */
+.animal.a1{ left: 310px; top: 344px; width: 254px; height: 295px; }      /* snake */
+.animal.a2{ left: 492px; top: 610px; width: 198px; height: 204px; }      /* frog */
+.animal.a3{ left: 790px; top: 651px; width: 249px; height: 149px; }      /* spider */
+.animal.a4{ left: 851px; top: 368px; width: 284.5px; height: 216px; }    /* 91 */
+
+/* ===============================
+   FRIENDS: 은하수/별가루 트레일
+=============================== */
+
+/* canvas 내부(1440×1024)에 얹는 별가루 레이어 */
+.star-trail{
+  position:absolute;
+  inset:0;
+  width:1440px;
+  height:1024px;
+
+  pointer-events:none;  /* 클릭 방해 X */
+  z-index:18;           /* 배경/아트보드(1) 위, 동물(20) 살짝 아래 or 위는 취향 */
+  opacity:1;
+  transition: opacity 500ms ease;
+
+  /* 살짝 부드럽게 보이게 */
+  filter: blur(0.2px);
+}
+
+/* 동물 위로 별가루를 띄우고 싶으면 z-index를 25 정도로 올리면 됨 */
+.canvas.frame-friends .star-trail.is-over-animals{
+  z-index:25;
+}
+
+/* 선택 연출 시작할 때 별가루를 자연스럽게 꺼버리기 */
+.star-trail.is-off{
+  opacity:0;
+}
+
 /* ===============================
    FRIENDS: 선택 후 black_cloud 연출
 =============================== */
 
 /* overlay는 캔버스(1440x1024) 전체를 덮는 레이어 */
 .friends-overlay{
-    position:absolute;
-    inset:0;
-    opacity:0;
-    pointer-events:none;
-    z-index:200; /* 동물/텍스트보다 위 */
-    transition: opacity 200ms ease;
-  }
-  
-  .friends-overlay.is-on{
-    opacity:1;
-  }
-  
-  /* ✅ 마지막에 베이지가 남는 문제 해결용 "검정 완전 덮기" 레이어 */
-  .black-fill{
-    position:absolute;
-    inset:0;
-    background:#000;
-    opacity:0;
-    transition: opacity 900ms ease;
-    z-index:0;
-  }
-  
-  /* ✅ is-expand(덮기 단계)에서 검정이 완전히 올라오게 */
-  .friends-overlay.is-expand .black-fill{
-    opacity:1;
-  }
-  
-  /* black_cloud (정중앙 png) */
-  .black-cloud{
-    position:absolute;
-    left:50%;
-    top:50%;
-    width:974px;     /* 피그마 Vector 크기 */
-    height:618px;
-    transform: translate(-50%, -50%) scale(var(--cloud-scale, 0.72));
-    transform-origin:center center;
-    will-change: transform, opacity;
-    opacity:1;
-    transition: transform 1400ms ease;
-    z-index:1; /* ✅ black-fill 위 */
-  }
-  
-  /* 텍스트 공통 */
-  .cloud-text{
-    position:absolute;
-    left:50%;
-    top:50%;
-    transform: translate(-50%, -50%);
-    width: 640px;
-    text-align:center;
-  
-    font-family: 'soya_ssal9';
-    font-weight:400;
-    font-size:40px;
-    line-height:48px;
-    color:#FFFFFF;
-  
-    opacity:0;
-    transition: opacity 220ms ease;
-    z-index:2; /* ✅ black-cloud 위 */
-  }
-  
-  /* 1번 문구 */
-  .cloud-text-1.is-on{ opacity:1; }
-  
-  /* 2번 문구 */
-  .cloud-text-2{ opacity:0; }
-  .cloud-text-2.is-on{ opacity:1; }
+  position:absolute;
+  inset:0;
+  opacity:0;
+  pointer-events:none;
+  z-index:200; /* 동물/텍스트보다 위 */
+  transition: opacity 200ms ease;
+}
+
+.friends-overlay.is-on{
+  opacity:1;
+}
+
+/* ✅ 마지막에 베이지가 남는 문제 해결용 "검정 완전 덮기" 레이어 */
+.black-fill{
+  position:absolute;
+  inset:0;
+  background:#000;
+  opacity:0;
+  transition: opacity 900ms ease;
+  z-index:0;
+}
+
+/* ✅ is-expand(덮기 단계)에서 검정이 완전히 올라오게 */
+.friends-overlay.is-expand .black-fill{
+  opacity:1;
+}
+
+/* black_cloud (정중앙 png) */
+.black-cloud{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:974px;     /* 피그마 Vector 크기 */
+  height:618px;
+  transform: translate(-50%, -50%) scale(var(--cloud-scale, 0.72));
+  transform-origin:center center;
+  will-change: transform, opacity;
+  opacity:1;
+  transition: transform 1400ms ease;
+  z-index:1; /* ✅ black-fill 위 */
+}
+
+/* 텍스트 공통 */
+.cloud-text{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform: translate(-50%, -50%);
+  width: 640px;
+  text-align:center;
+
+  font-family: 'soya_ssal9';
+  font-weight:400;
+  font-size:40px;
+  line-height:48px;
+  color:#FFFFFF;
+
+  opacity:0;
+  transition: opacity 220ms ease;
+  z-index:2; /* ✅ black-cloud 위 */
+}
+
+/* 1번 문구 */
+.cloud-text-1.is-on{ opacity:1; }
+
+/* 2번 문구 */
+.cloud-text-2{ opacity:0; }
+.cloud-text-2.is-on{ opacity:1; }
+
+/* ===============================
+   NEXT PAGE (임시)
+=============================== */
+.canvas.frame-next{
+  background:#FFF9EB;
+}
+
+/* 배경 패턴: sun-pattern */
+.next-pattern{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:0;
+
+  background-image: url("./assets/sun-pattern.png");
+  background-repeat: repeat;
+  background-size: 1440px 1024px;
+  background-position: 0 0;
+
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* 중앙 아트보드 */
+.next-artboard{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform: translate(-50%, -50%);
+  width:1440px;
+  height:auto;
+
+  display:block;
+  pointer-events:none;
+  z-index:1;
+}

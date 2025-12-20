@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sun</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="stage">
+    <main class="frame" id="frameSun">
+      <div class="canvas frame-sun" id="canvasSun">
+
+        <!-- 패턴 (카드가 닿은 뒤 등장) -->
+        <div class="sun-pattern" id="sunPattern" aria-hidden="true"></div>
+
+        <!-- 중앙 카드 -->
+        <img
+          class="sun-center-card"
+          id="sunCenterCard"
+          src="./assets/the-sun.png"
+          alt=""
+          draggable="false"
+        />
+
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // =========================
+    // 스케일 계산 (index / moon과 동일)
+    // =========================
+    const BASE_W = 1440;
+    const BASE_H = 1024;
+
+    const frame = document.getElementById("frameSun");
+    const canvas = document.getElementById("canvasSun");
+
+    function setScale() {
+      const s = Math.min(
+        1,
+        (window.innerWidth - 40) / BASE_W,
+        (window.innerHeight - 40) / BASE_H
+      );
+      frame.style.setProperty("--s", s);
+      canvas.style.setProperty("--s", s);
+    }
+
+    window.addEventListener("resize", setScale);
+    setScale();
+
+    // =========================
+    // Sun 카드 확대 연출
+    // =========================
+    const FRAME_H = 1024;
+    const CARD_W = 371;
+    const CARD_H = 636;
+
+    const GROW_MS = 2000;
+    const FADE_MS = 250;
+
+    const card = document.getElementById("sunCenterCard");
+    const pattern = document.getElementById("sunPattern");
+
+    card.style.width = CARD_W + "px";
+    card.style.height = CARD_H + "px";
+
+    const START_SCALE = 0.55;
+    const TARGET_SCALE = FRAME_H / CARD_H;
+    const EDGE_EPS = 0.5;
+
+    function easeOutCubic(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    let done = false;
+
+    function finishAtContact() {
+      if (done) return;
+      done = true;
+
+      // 정확히 프레임에 맞춰 고정
+      card.style.setProperty("--scale", TARGET_SCALE);
+
+      // 카드만 사라지고 패턴은 남김
+      card.classList.add("sun-card-hide");
+
+      setTimeout(() => {
+        pattern.classList.add("is-on");
+        // ❌ 페이지 이동 없음
+      }, FADE_MS);
+    }
+
+    const start = performance.now();
+    function tick(now) {
+      if (done) return;
+
+      const t = Math.min(1, (now - start) / GROW_MS);
+      const e = easeOutCubic(t);
+
+      const s = lerp(START_SCALE, TARGET_SCALE, e);
+      card.style.setProperty("--scale", s);
+
+      const frameRect = frame.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+
+      if (cardRect.height >= frameRect.height - EDGE_EPS) {
+        finishAtContact();
+        return;
+      }
+
+      if (t < 1) requestAnimationFrame(tick);
+    }
+
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>

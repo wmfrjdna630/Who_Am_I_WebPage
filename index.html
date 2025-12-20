@@ -14,7 +14,11 @@
 
         <div class="overlay" id="overlay" aria-hidden="true"></div>
 
+        <!-- ✅ Moon 카드 -->
         <img class="moon-card" id="moonCard" src="./assets/the-moon.png" alt="" />
+
+        <!-- ✅ Sun 카드 (Moon과 동일 기능, 반대 방향) -->
+        <img class="sun-card" id="sunCard" src="./assets/the-sun.png" alt="" draggable="false" />
 
         <img class="silhouette" id="silhouette" src="./assets/silhouette.png" alt="" />
 
@@ -79,12 +83,21 @@
     const CARD_H = 636;
     const CARD_TOP = 214;
 
+    // Moon: 중앙(왼쪽 절반)에서 시작 → 왼쪽 끝(0)으로
+    // ✅ moon의 오른쪽 경계가 중심선(720)에 붙는 시작점
     const CARD_START_LEFT = (FRAME_W / 2) - CARD_W; // 349
     const CARD_END_LEFT = 0;
+
+    // Sun: "중심선(1440/2)"에서 시작 → 오른쪽 끝으로
+    // ✅ sun의 왼쪽 경계가 중심선(720)에 붙는 시작점
+    const SUN_START_LEFT = (FRAME_W / 2); // 720
+    const SUN_END_LEFT = FRAME_W - CARD_W;
+
     const EDGE_EPS = 0.5;
 
     const silhouette = document.getElementById("silhouette");
     const moonCard = document.getElementById("moonCard");
+    const sunCard = document.getElementById("sunCard");
 
     // 이메일 복사
     const copyBtn = document.querySelector(".copy");
@@ -107,15 +120,22 @@
     let reachedEdge = false;
     let finalTimer = null;
 
-    function applyCard(leftPx) {
+    function applyMoonCard(leftPx) {
       moonCard.style.left = `${leftPx}px`;
       moonCard.style.top = `${CARD_TOP}px`;
       moonCard.style.width = `${CARD_W}px`;
       moonCard.style.height = `${CARD_H}px`;
     }
 
+    function applySunCard(leftPx) {
+      sunCard.style.left = `${leftPx}px`;
+      sunCard.style.top = `${CARD_TOP}px`;
+      sunCard.style.width = `${CARD_W}px`;
+      sunCard.style.height = `${CARD_H}px`;
+    }
+
     function getScale() {
-      // ✅ 이제 rect.width는 "실제 보이는 프레임 폭"이라서 scale이 안정적으로 나옴
+      // ✅ rect.width는 "실제 보이는 프레임 폭"이라서 scale이 안정적으로 나옴
       const rect = frame.getBoundingClientRect();
       return rect.width / FRAME_W;
     }
@@ -137,26 +157,40 @@
       }
     }
 
-    applyCard(CARD_START_LEFT);
+    // 초기 위치(둘 다 중심선에 붙어있는 "대기" 위치)
+    applyMoonCard(CARD_START_LEFT);
+    applySunCard(SUN_START_LEFT);
+
+    // 시작은 둘 다 숨김
     moonCard.classList.add("is-hidden");
+    sunCard.classList.add("is-hidden");
 
     silhouette.addEventListener("click", () => {
       active = !active;
 
       if (active) {
+        // ✅ active 켜면 일단 moon만 보여주고 시작(왼쪽 감성)
         moonCard.classList.remove("is-hidden");
+        sunCard.classList.add("is-hidden");
+
         reachedEdge = false;
         clearFinalTimer();
         setFinal(false);
         setOverlay(false);
-        applyCard(CARD_START_LEFT);
+
+        applyMoonCard(CARD_START_LEFT);
+        applySunCard(SUN_START_LEFT);
       } else {
         moonCard.classList.add("is-hidden");
+        sunCard.classList.add("is-hidden");
+
         reachedEdge = false;
         clearFinalTimer();
         setFinal(false);
         setOverlay(false);
-        applyCard(CARD_START_LEFT);
+
+        applyMoonCard(CARD_START_LEFT);
+        applySunCard(SUN_START_LEFT);
       }
     });
 
@@ -172,35 +206,105 @@
       ) return;
 
       const x = (e.clientX - rect.left) / scale;
-
       const centerX = FRAME_W / 2;
-      const raw = (centerX - x) / centerX;
-      const t = clamp(raw, 0, 1);
-      const eased = easeOutCubic(t);
 
-      const left = lerp(CARD_START_LEFT, CARD_END_LEFT, eased);
-      applyCard(left);
+      // =========================
+      // ✅ 좌/우에 따라 카드 1장만 보이기
+      // =========================
+      const isLeftSide = (x <= centerX);
 
-      if (left <= CARD_END_LEFT + EDGE_EPS) {
-        if (!reachedEdge) {
-          reachedEdge = true;
-          setOverlay(true);
+      if (isLeftSide) {
+        // 🌙 왼쪽: moon만 보임
+        if (moonCard.classList.contains("is-hidden")) {
+          moonCard.classList.remove("is-hidden");
+          sunCard.classList.add("is-hidden");
 
-          clearFinalTimer();
-          finalTimer = setTimeout(() => {
-            setFinal(true);
-
-            setTimeout(() => {
-              window.location.href = "./moon.html";
-            }, 900);
-          }, 650);
-        }
-      } else {
-        if (reachedEdge) {
           reachedEdge = false;
           clearFinalTimer();
           setFinal(false);
           setOverlay(false);
+
+          // sun은 중심선으로 다시 붙여둠(대기)
+          applySunCard(SUN_START_LEFT);
+        }
+
+        // 🌙 MOON: 중심선에서 시작해서 왼쪽 끝으로
+        const rawMoon = (centerX - x) / centerX;  // 0(중앙) -> 1(왼쪽 끝)
+        const tMoon = clamp(rawMoon, 0, 1);
+        const easedMoon = easeOutCubic(tMoon);
+
+        const moonLeft = lerp(CARD_START_LEFT, CARD_END_LEFT, easedMoon);
+        applyMoonCard(moonLeft);
+
+        const moonHit = (moonLeft <= CARD_END_LEFT + EDGE_EPS);
+
+        if (moonHit) {
+          if (!reachedEdge) {
+            reachedEdge = true;
+            setOverlay(true);
+
+            clearFinalTimer();
+            finalTimer = setTimeout(() => {
+              setFinal(true);
+              setTimeout(() => {
+                window.location.href = "./moon.html";
+              }, 900);
+            }, 650);
+          }
+        } else {
+          if (reachedEdge) {
+            reachedEdge = false;
+            clearFinalTimer();
+            setFinal(false);
+            setOverlay(false);
+          }
+        }
+
+      } else {
+        // ☀️ 오른쪽: sun만 보임
+        if (sunCard.classList.contains("is-hidden")) {
+          sunCard.classList.remove("is-hidden");
+          moonCard.classList.add("is-hidden");
+
+          reachedEdge = false;
+          clearFinalTimer();
+          setFinal(false);
+          setOverlay(false);
+
+          // moon은 중심선 기준 시작 위치로 다시(대기)
+          applyMoonCard(CARD_START_LEFT);
+        }
+
+        // ☀️ SUN: 중심선에서 시작해서 오른쪽 끝으로
+        const rawSun = (x - centerX) / centerX;   // 0(중앙) -> 1(오른쪽 끝)
+        const tSun = clamp(rawSun, 0, 1);
+        const easedSun = easeOutCubic(tSun);
+
+        const sunLeft = lerp(SUN_START_LEFT, SUN_END_LEFT, easedSun);
+        applySunCard(sunLeft);
+
+        const sunHit = (sunLeft >= SUN_END_LEFT - EDGE_EPS);
+
+        if (sunHit) {
+          if (!reachedEdge) {
+            reachedEdge = true;
+            setOverlay(true);
+
+            clearFinalTimer();
+            finalTimer = setTimeout(() => {
+              setFinal(true);
+              setTimeout(() => {
+                window.location.href = "./sun.html";
+              }, 900);
+            }, 650);
+          }
+        } else {
+          if (reachedEdge) {
+            reachedEdge = false;
+            clearFinalTimer();
+            setFinal(false);
+            setOverlay(false);
+          }
         }
       }
     });
@@ -208,12 +312,17 @@
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         active = false;
+
         moonCard.classList.add("is-hidden");
+        sunCard.classList.add("is-hidden");
+
         reachedEdge = false;
         clearFinalTimer();
         setFinal(false);
         setOverlay(false);
-        applyCard(CARD_START_LEFT);
+
+        applyMoonCard(CARD_START_LEFT);
+        applySunCard(SUN_START_LEFT);
       }
     });
   </script>

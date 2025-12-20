@@ -45,6 +45,8 @@
           </button>
         </div>
 
+        <canvas class="star-trail" id="starTrail" width="1440" height="1024" aria-hidden="true"></canvas>
+
         <!-- ✅✅ overlay를 canvas 직속으로 둬서 1440×1024를 무조건 덮게 함 -->
         <div class="friends-overlay" id="friendsOverlay" aria-hidden="true">
           <div class="black-fill"></div>
@@ -95,6 +97,196 @@
     const enter = document.getElementById("friendsEnter");
     requestAnimationFrame(() => enter?.classList.add("is-on"));
 
+// ===============================
+// ✨ 은하수/별가루 트레일 (1440×1024 고정 좌표계 + scale 완벽 호환)
+// ===============================
+const starCanvas = document.getElementById("starTrail");
+const starCtx = starCanvas?.getContext("2d", { alpha: true });
+
+/* 성능/감성 튜닝값 */
+const STAR_MAX = 140;           // 화면에 유지되는 입자 최대치
+const STAR_SPAWN_RATE = 3;      // 마우스 이동 1회당 생성 개수
+const STAR_LIFE_MIN = 420;      // ms
+const STAR_LIFE_MAX = 900;      // ms
+const STAR_SPEED_MIN = 0.35;
+const STAR_SPEED_MAX = 1.45;
+
+/* 은하수 컬러 팔레트(은은한 푸/보 + 화이트) */
+const STAR_COLORS = [
+  "rgba(221,241,255,0.98)",
+  "rgba(221,241,255,0.92)",
+  "rgba(221,241,255,0.85)"
+];
+
+let starParticles = [];
+let starRunning = true;
+let lastMouse = null;
+
+// index처럼 frame 기준 실제 스케일을 얻는다 (frameRect.width / 1440)
+function getScaleFriends(){
+  const rect = frame.getBoundingClientRect();
+  return rect.width / 1440;
+}
+
+// frame 내부에서만 생성되게 (바깥으로 나가면 멈춤)
+function getLocalPosFromEvent(e){
+  const rect = frame.getBoundingClientRect();
+  const s = getScaleFriends();
+
+  const cx = (e.clientX - rect.left) / s;
+  const cy = (e.clientY - rect.top) / s;
+
+  if (cx < 0 || cy < 0 || cx > 1440 || cy > 1024) return null;
+  return { x: cx, y: cy };
+}
+
+function rand(min, max){ return min + Math.random() * (max - min); }
+function pick(arr){ return arr[(Math.random() * arr.length) | 0]; }
+
+function spawnStars(x, y, dx, dy){
+  if (!starRunning) return;
+
+  // 마우스 이동 방향이 있으면 그 방향으로 "촤라락" 흐름을 준다
+  const dirLen = Math.hypot(dx, dy) || 1;
+  const ndx = dx / dirLen;
+  const ndy = dy / dirLen;
+
+  for (let i = 0; i < STAR_SPAWN_RATE; i++){
+    if (starParticles.length >= STAR_MAX) starParticles.shift();
+
+    // 마우스 주변 랜덤 오프셋(은하수 흩날림)
+    const ox = rand(-10, 10);
+    const oy = rand(-10, 10);
+
+    // 이동 벡터: 마우스 진행 방향 + 랜덤 퍼짐
+    const speed = rand(STAR_SPEED_MIN, STAR_SPEED_MAX);
+    const spread = rand(0.35, 1.1);
+
+    const vx = (ndx * speed * rand(0.6, 1.2)) + rand(-spread, spread);
+    const vy = (ndy * speed * rand(0.6, 1.2)) + rand(-spread, spread);
+
+    const life = rand(STAR_LIFE_MIN, STAR_LIFE_MAX);
+
+    starParticles.push({
+      x: x + ox,
+      y: y + oy,
+      px: x + ox,
+      py: y + oy,
+      vx,
+      vy,
+      t: 0,
+      life,
+      size: rand(0.7, 2.0),
+      glow: rand(2.5, 7.5),
+      color: pick(STAR_COLORS),
+      twist: rand(-0.03, 0.03) // 살짝 휘는 느낌
+    });
+  }
+}
+
+function drawParticle(p, alpha){
+  // “촤라락” 느낌: 점 + 짧은 선(이전 위치->현재 위치)
+  starCtx.save();
+  starCtx.globalCompositeOperation = "lighter";
+  starCtx.globalAlpha = alpha;
+
+  // 은은한 글로우
+  starCtx.shadowBlur = p.glow;
+  starCtx.shadowColor = p.color;
+
+  // 라인(꼬리)
+  starCtx.strokeStyle = p.color;
+  starCtx.lineWidth = Math.max(0.6, p.size);
+  starCtx.beginPath();
+  starCtx.moveTo(p.px, p.py);
+  starCtx.lineTo(p.x, p.y);
+  starCtx.stroke();
+
+  // 핵심 점(반짝)
+  starCtx.fillStyle = p.color;
+  starCtx.beginPath();
+  starCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+  starCtx.fill();
+
+  starCtx.restore();
+}
+
+let lastFrame = performance.now();
+function tickStars(now){
+  if (!starCtx) return;
+
+  const dt = now - lastFrame;
+  lastFrame = now;
+
+  // 완전 투명 레이어라서 "검정 페이드 덮기" 같은 방식은 안 씀(밑이 어두워짐 방지)
+  starCtx.clearRect(0, 0, 1440, 1024);
+
+  // 업데이트 + 그리기
+  const next = [];
+  for (const p of starParticles){
+    p.t += dt;
+    if (p.t >= p.life) continue;
+
+    // 알파 곡선: 초반 반짝 -> 중반 유지 -> 후반 서서히 사라짐
+    const u = p.t / p.life;
+    const alpha = (u < 0.15)
+      ? (u / 0.15) * 0.9
+      : (u < 0.75)
+        ? 0.9
+        : (1 - (u - 0.75) / 0.25) * 0.9;
+
+    // 살짝 휘는(은하수 흐름) 느낌
+    const tvx = p.vx - p.vy * p.twist;
+    const tvy = p.vy + p.vx * p.twist;
+
+    p.px = p.x;
+    p.py = p.y;
+
+    p.x += tvx * (dt / 16.67);
+    p.y += tvy * (dt / 16.67);
+
+    drawParticle(p, alpha);
+    next.push(p);
+  }
+
+  starParticles = next;
+  requestAnimationFrame(tickStars);
+}
+
+if (starCanvas && starCtx){
+  // 마우스 이동 시 생성
+  window.addEventListener("mousemove", (e) => {
+    const pos = getLocalPosFromEvent(e);
+    if (!pos) { lastMouse = null; return; }
+
+    if (!lastMouse){
+      lastMouse = { x: pos.x, y: pos.y };
+      spawnStars(pos.x, pos.y, 1, 0);
+      return;
+    }
+
+    const dx = pos.x - lastMouse.x;
+    const dy = pos.y - lastMouse.y;
+
+    // 너무 미세한 움직임은 생성 안 해서 "지저분함" 방지
+    if (Math.hypot(dx, dy) >= 0.8){
+      spawnStars(pos.x, pos.y, dx, dy);
+      lastMouse = { x: pos.x, y: pos.y };
+    }
+  });
+
+  // 터치(모바일)도 살짝 지원 (필요 없으면 지워도 됨)
+  window.addEventListener("touchmove", (e) => {
+    const t = e.touches?.[0];
+    if (!t) return;
+    const pos = getLocalPosFromEvent(t);
+    if (!pos) return;
+    spawnStars(pos.x, pos.y, 1, 0);
+  }, { passive: true });
+
+  requestAnimationFrame(tickStars);
+}
+    
     // ====== 동물 선택(1개) + black_cloud 연출 ======
     const animals = Array.from(document.querySelectorAll(".animal"));
     let selected = null;
@@ -113,6 +305,10 @@
     function runCloudSequence() {
       if (sequenceStarted) return;
       sequenceStarted = true;
+
+      // ✨ 별가루는 이때 사라지게(감성 전환)
+      starRunning = false;
+      starCanvas?.classList.add("is-off");
 
       animals.forEach(btn => btn.disabled = true);
 
