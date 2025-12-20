@@ -29,7 +29,7 @@
 
   <script>
     // =========================
-    // 스케일 계산 (index / moon과 동일)
+    // ✅ index / moon과 동일한 스케일 계산
     // =========================
     const BASE_W = 1440;
     const BASE_H = 1024;
@@ -51,7 +51,7 @@
     setScale();
 
     // =========================
-    // Sun 카드 확대 연출
+    // ☀️ Sun 카드 확대 연출 (moon과 동일)
     // =========================
     const FRAME_H = 1024;
     const CARD_W = 371;
@@ -83,15 +83,19 @@
       if (done) return;
       done = true;
 
-      // 정확히 프레임에 맞춰 고정
+      // ✅ 닿는 순간 정확히 고정
       card.style.setProperty("--scale", TARGET_SCALE);
 
-      // 카드만 사라지고 패턴은 남김
+      // ✅ 카드 사라짐
       card.classList.add("sun-card-hide");
 
+      // ✅ 패턴 등장 → next.html 이동 (moon과 동일 구조)
       setTimeout(() => {
         pattern.classList.add("is-on");
-        // ❌ 페이지 이동 없음
+
+        setTimeout(() => {
+          window.location.href = "./next.html";
+        }, 650); // moon.html과 동일
       }, FADE_MS);
     }
 
@@ -108,12 +112,14 @@
       const frameRect = frame.getBoundingClientRect();
       const cardRect = card.getBoundingClientRect();
 
+      // ✅ "시간"보다 "실제 닿음" 우선 판정 (moon과 동일)
       if (cardRect.height >= frameRect.height - EDGE_EPS) {
         finishAtContact();
         return;
       }
 
       if (t < 1) requestAnimationFrame(tick);
+      else finishAtContact(); // 안전장치
     }
 
     requestAnimationFrame(tick);
