@@ -1213,6 +1213,13 @@
         }
 
         waterMesh = roomRoot.getObjectByName("Water_Surface") || null;
+        if (waterMesh && waterMesh.material) {
+          const mats = Array.isArray(waterMesh.material)
+            ? waterMesh.material
+            : [waterMesh.material];
+          const cloned = mats.map((mat) => mat.clone());
+          waterMesh.material = Array.isArray(waterMesh.material) ? cloned : cloned[0];
+        }
 
         fitCameraToObject(roomRoot);
 
