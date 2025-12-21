@@ -329,6 +329,15 @@ if (starCanvas && starCtx){
 
         overlay.classList.add("is-expand");
         cloud.style.setProperty("--cloud-scale", String(coverScale));
+
+        // ✅ 검정이 충분히 덮인 뒤 next로 이동
+        // - black-fill transition: 900ms
+        // - expand 시작이 900ms 시점이므로, 900 + 900 = 1800ms 즈음에 완전 검정
+        // - 살짝 여유를 두고 950ms 후 이동(총 1850ms)
+        setTimeout(() => {
+          window.location.href = "./moon-room.html";
+        }, 950);
+
       }, 900);
     }
 
