@@ -1,0 +1,1058 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sun Room</title>
+  <link rel="stylesheet" href="./style.css" />
+
+  <!-- ✅ Three.js ESM importmap -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <style>
+    .sunroom-webgl{
+      position:absolute;
+      left:0; top:0;
+      width:1440px;
+      height:1024px;
+      z-index:2;
+      pointer-events:auto;
+    }
+
+    .star-trail{
+      position:absolute;
+      inset:0;
+      width:1440px;
+      height:1024px;
+      pointer-events:none;
+      z-index:3;
+      opacity:1;
+    }
+
+    .sun-chat-stack{
+      position:absolute;
+      right:48px;
+      bottom:48px;
+      display:flex;
+      flex-direction:column-reverse;
+      align-items:flex-end;
+      gap:10px;
+      z-index:4;
+      pointer-events:none;
+    }
+
+    .sun-chat-bubble{
+      opacity:0;
+      transform: translate(var(--chat-x, 0px), 6px);
+      transition: opacity 200ms ease, transform 200ms ease;
+    }
+
+    .sun-chat-bubble.is-on{
+      opacity:1;
+      transform: translate(var(--chat-x, 0px), 0);
+    }
+
+    .sun-chat-bubble img{
+      display:block;
+      max-width:560px;
+      height:auto;
+      user-select:none;
+      -webkit-user-drag:none;
+    }
+
+
+    .sun-popup-overlay{
+      position:absolute;
+      left:0; top:0;
+      width:1440px;
+      height:1024px;
+      background: rgba(0,0,0,0.62);
+      opacity:0;
+      pointer-events:none;
+      transition: opacity 220ms ease;
+      z-index:10000;
+    }
+    .sun-popup-overlay.is-on{
+      opacity:1;
+      pointer-events:auto;
+    }
+
+    .sun-popup{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform: translate(-50%, -50%) scale(0.985);
+      transform-origin:center center;
+      opacity:0;
+      pointer-events:none;
+      transition: opacity 220ms ease, transform 220ms ease;
+      z-index:10001;
+    }
+    .sun-popup.is-on{
+      opacity:1;
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events:auto;
+    }
+
+    .sun-popup:not(.is-on) * {
+      pointer-events:none !important;
+    }
+
+    .sun-popup > img{
+      display:block;
+      user-select:none;
+      -webkit-user-drag:none;
+      max-width: 90vw;
+      max-height: 90vh;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      min-width: 200px;
+      min-height: 200px;
+    }
+
+    .sun-popup-close{
+      position:absolute;
+      top:22px;
+      right:22px;
+      width:44px;
+      height:44px;
+      padding:0;
+      border:0;
+      background:transparent;
+      cursor:pointer;
+      line-height:0;
+      z-index:10002;
+    }
+    .sun-popup-close img{
+      display:block;
+      width:44px;
+      height:44px;
+      user-select:none;
+      -webkit-user-drag:none;
+    }
+    .sun-popup-close:hover{ opacity:0.9; }
+    .sun-popup-close:active{ transform: scale(0.98); }
+
+    .sun-popup-bg{
+      position:relative;
+      z-index:1;
+    }
+
+    .sun-popup-slider{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform: translate(-50%, -50%);
+      width:92%;
+      height:92%;
+      z-index:2;
+      pointer-events:none;
+      overflow:hidden;
+    }
+
+    .sun-popup-slider-track{
+      position:absolute;
+      left:0;
+      top:0;
+      width:100%;
+      height:100%;
+    }
+
+    .sun-popup-slide{
+      position:absolute;
+      left:0;
+      top:0;
+      width:100%;
+      height:100%;
+      object-fit: contain;
+      object-position: center;
+      user-select:none;
+      -webkit-user-drag:none;
+      pointer-events:auto;
+      opacity:0;
+      transition: opacity 0ms;
+    }
+    .sun-popup-slide.is-active{
+      opacity:1;
+    }
+
+    .sun-popup-arrow{
+      position:absolute;
+      top:50%;
+      transform: translateY(-50%);
+      width:48px;
+      height:48px;
+      padding:0;
+      border:0;
+      background:transparent;
+      cursor:pointer;
+      line-height:0;
+      z-index:10003;
+      opacity:0.85;
+      transition: opacity 200ms ease;
+      pointer-events:auto;
+    }
+    .sun-popup-arrow:hover{ opacity:1; }
+    .sun-popup-arrow:active{ transform: translateY(-50%) scale(0.95); }
+
+    .sun-popup-arrow-left{
+      left:100px;
+    }
+    .sun-popup-arrow-right{
+      right:100px;
+    }
+
+    .sun-popup-arrow img{
+      display:block;
+      width:100%;
+      height:100%;
+      object-fit: contain;
+      user-select:none;
+      -webkit-user-drag:none;
+    }
+
+    /* =========================
+       ✅ Sun Room – Navigation Tokens
+       ========================= */
+    .nav-tokens{
+      position:absolute;
+      left:48px;
+      top:48px;
+      display:flex;
+      align-items:center;
+      gap:18px;
+
+      z-index:9997;
+      pointer-events:auto;
+
+      transform: scale(0.68);
+      transform-origin: left top;
+    }
+
+    .nav-token{
+      appearance:none;
+      border:0;
+      background:transparent;
+      padding:0;
+      margin:0;
+      cursor:pointer;
+      line-height:0;
+    }
+
+    .nav-token img{
+      display:block;
+      width:64px;
+      height:64px;
+      user-select:none;
+      -webkit-user-drag:none;
+      transform: translateZ(0);
+    }
+
+    .nav-token:hover img{ opacity:0.9; }
+    .nav-token:active img{ transform: translateZ(0) scale(0.98); }
+  </style>
+</head>
+
+<body>
+  <div class="stage">
+    <main class="frame" id="frameSunRoom">
+      <div class="canvas" id="canvasSunRoom">
+        <div id="webglHost" class="sunroom-webgl" aria-hidden="true"></div>
+        <canvas class="star-trail" id="starTrail" width="1440" height="1024" aria-hidden="true"></canvas>
+        <div class="sun-chat-stack" id="sunChatStack" aria-hidden="true"></div>
+
+        <!-- ✅ 좌상단 토큰 -->
+        <div class="nav-tokens" aria-label="quick navigation">
+          <button class="nav-token" type="button" id="MoonGo" aria-label="MoonGo">
+            <img src="./assets/MoonGo.png" alt="" draggable="false" />
+          </button>
+
+          <button class="nav-token" type="button" id="SunGo" aria-label="SunGo">
+            <img src="./assets/SunGo.png" alt="" draggable="false" />
+          </button>
+
+          <button class="nav-token" type="button" id="HomeGo" aria-label="HomeGo">
+            <img src="./assets/HomeGo.png" alt="" draggable="false" />
+          </button>
+        </div>
+
+        <div class="sun-popup-overlay" id="sunPopupOverlay" aria-hidden="true">
+          <div class="sun-popup" id="sunPopupJelly1" aria-label="sun popup jelly1">
+            <img class="sun-popup-bg" src="./assets/sun_popup_jelly1.png" alt="" draggable="false" />
+
+            <div class="sun-popup-slider" id="sunPopupJelly1Slider">
+              <div class="sun-popup-slider-track">
+                <img class="sun-popup-slide" src="./assets/sun_popup1-1.png" alt="" draggable="false" />
+                <img class="sun-popup-slide" src="./assets/sun_popup1-2.png" alt="" draggable="false" />
+                <img class="sun-popup-slide" src="./assets/sun_popup1-3.png" alt="" draggable="false" />
+                <img class="sun-popup-slide" src="./assets/sun_popup1-4.png" alt="" draggable="false" />
+                <img class="sun-popup-slide" src="./assets/sun_popup1-5.png" alt="" draggable="false" />
+              </div>
+            </div>
+
+            <button class="sun-popup-arrow sun-popup-arrow-left" type="button" data-slider="sunPopupJelly1" data-direction="prev" aria-label="previous page">
+              <img src="./assets/left_arrow.png" alt="" draggable="false" />
+            </button>
+            <button class="sun-popup-arrow sun-popup-arrow-right" type="button" data-slider="sunPopupJelly1" data-direction="next" aria-label="next page">
+              <img src="./assets/right_arrow.png" alt="" draggable="false" />
+            </button>
+
+            <button class="sun-popup-close" type="button" data-popup-close aria-label="close popup">
+              <img src="./assets/X.png" alt="" draggable="false" />
+            </button>
+          </div>
+
+          <div class="sun-popup" id="sunPopupJelly2" aria-label="sun popup jelly2">
+            <img class="sun-popup-bg" src="./assets/sun_popup_jelly2.png" alt="" draggable="false" />
+
+            <div class="sun-popup-slider" id="sunPopupJelly2Slider">
+              <div class="sun-popup-slider-track">
+                <img class="sun-popup-slide" src="./assets/sun_popup2-1.png" alt="" draggable="false" />
+                <img class="sun-popup-slide" src="./assets/sun_popup2-2.png" alt="" draggable="false" />
+                <img class="sun-popup-slide" src="./assets/sun_popup2-3.png" alt="" draggable="false" />
+                <img class="sun-popup-slide" src="./assets/sun_popup2-4.png" alt="" draggable="false" />
+                <img class="sun-popup-slide" src="./assets/sun_popup2-5.png" alt="" draggable="false" />
+                <img class="sun-popup-slide" src="./assets/sun_popup2-6.png" alt="" draggable="false" />
+              </div>
+            </div>
+
+            <button class="sun-popup-arrow sun-popup-arrow-left" type="button" data-slider="sunPopupJelly2" data-direction="prev" aria-label="previous page">
+              <img src="./assets/left_arrow.png" alt="" draggable="false" />
+            </button>
+            <button class="sun-popup-arrow sun-popup-arrow-right" type="button" data-slider="sunPopupJelly2" data-direction="next" aria-label="next page">
+              <img src="./assets/right_arrow.png" alt="" draggable="false" />
+            </button>
+
+            <button class="sun-popup-close" type="button" data-popup-close aria-label="close popup">
+              <img src="./assets/X.png" alt="" draggable="false" />
+            </button>
+          </div>
+
+          <div class="sun-popup" id="sunPopupCredits" aria-label="sun popup credits">
+            <img class="sun-popup-bg" src="./assets/Credits.png" alt="" draggable="false" />
+            <button class="sun-popup-close" type="button" data-popup-close aria-label="close popup">
+              <img src="./assets/X.png" alt="" draggable="false" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import * as THREE from "three";
+    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+    import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+    import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+    import { OutlinePass } from "three/addons/postprocessing/OutlinePass.js";
+
+    // ✅ [ADD] 실내 간접광(IBL)용
+    import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+
+    // =========================
+    // ✅ 1440×1024 고정 좌표계 + scale(--s)
+    // =========================
+    const BASE_W = 1440;
+    const BASE_H = 1024;
+
+    const frame = document.getElementById("frameSunRoom");
+    const canvas = document.getElementById("canvasSunRoom");
+
+    function setScale(){
+      const s = Math.min(
+        1,
+        (window.innerWidth - 40) / BASE_W,
+        (window.innerHeight - 40) / BASE_H
+      );
+      frame.style.setProperty("--s", s);
+      canvas.style.setProperty("--s", s);
+    }
+    window.addEventListener("resize", setScale);
+    setScale();
+
+    function getScale(){
+      const rect = frame.getBoundingClientRect();
+      return rect.width / BASE_W;
+    }
+
+    // =========================
+    // ✅ 배경: 흰색
+    // =========================
+    const BG_COLOR = "#FFFFFF";
+    canvas.style.background = BG_COLOR;
+
+    // =========================
+    // ✅ Three 기본 셋업
+    // =========================
+    const host = document.getElementById("webglHost");
+
+    const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false });
+    renderer.setSize(BASE_W, BASE_H, false);
+    renderer.setPixelRatio(1);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    // ✅ [ADD] 톤매핑/노출: 실내가 너무 어두운 문제 완화
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0; // <- 너무 밝으면 1.15~1.2로 낮추면 됨
+
+    renderer.setClearColor(new THREE.Color(BG_COLOR), 0);
+
+    host.appendChild(renderer.domElement);
+    renderer.domElement.style.width = BASE_W + "px";
+    renderer.domElement.style.height = BASE_H + "px";
+    renderer.domElement.style.display = "block";
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(BG_COLOR);
+
+    const camera = new THREE.PerspectiveCamera(35, BASE_W / BASE_H, 0.01, 2000);
+    camera.position.set(0, 0, 5);
+
+    // =========================
+    // ✅ [ADD] RoomEnvironment (IBL)
+    // - PBR 재질(standard/physical) 실내가 어두운 문제에 가장 직빵
+    // =========================
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const envTex = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+    scene.environment = envTex;
+    // scene.background는 흰색 유지하므로 environment만 적용
+
+    // =========================
+    // ✅ 라이트
+    // =========================
+    const ambient = new THREE.AmbientLight(0xffffff, 1.35);
+    scene.add(ambient);
+
+    const hemi = new THREE.HemisphereLight(0xffffff, 0xf3e8d8, 0.85);
+    hemi.position.set(0, 2, 0);
+    scene.add(hemi);
+
+    const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+    dir.position.set(2.5, 3.5, 2.0);
+    scene.add(dir);
+
+    // ✅ [TWEAK] 실내 보조광 조금 올림
+    const interiorLight = new THREE.PointLight(0xfff2d9, 1.1, 9.0, 2.0);
+    interiorLight.position.set(0, 1.15, 0.45);
+    scene.add(interiorLight);
+
+    // =========================
+    // ✅ OrbitControls
+    // =========================
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+
+    controls.minAzimuthAngle = -Math.PI / 2;
+    controls.maxAzimuthAngle = 0;
+
+    controls.minPolarAngle = Math.PI / 4;
+    controls.maxPolarAngle = Math.PI * 75 / 180;
+
+    // =========================
+    // ✅ Postprocessing: Outline(hover)
+    // =========================
+    const composer = new EffectComposer(renderer);
+    composer.setSize(BASE_W, BASE_H);
+
+    composer.addPass(new RenderPass(scene, camera));
+
+    const outlinePass = new OutlinePass(new THREE.Vector2(BASE_W, BASE_H), scene, camera);
+    outlinePass.edgeStrength = 8.0;
+    outlinePass.edgeThickness = 3.0;
+    outlinePass.edgeGlow = 0.5;
+    outlinePass.pulsePeriod = 0;
+    outlinePass.visibleEdgeColor.set("#000000"); // ✅ 흰 배경이므로 검은 outline
+    outlinePass.hiddenEdgeColor.set("#000000");
+    composer.addPass(outlinePass);
+
+    // =========================
+    // ✅ GLB 로드 + auto-fit
+    // =========================
+    const loader = new GLTFLoader();
+    let roomRoot = null;
+
+    function fitCameraToObject(object3D){
+      const box = new THREE.Box3().setFromObject(object3D);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+
+      controls.target.copy(center);
+
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const fov = THREE.MathUtils.degToRad(camera.fov);
+
+      let distance = (maxDim * 0.5) / Math.tan(fov * 0.5);
+      distance *= 1.45;
+
+      const dirVec = new THREE.Vector3()
+        .subVectors(camera.position, controls.target)
+        .normalize();
+
+      if (!isFinite(dirVec.x) || dirVec.lengthSq() < 1e-8) {
+        dirVec.set(0, 0.2, 1).normalize();
+      }
+
+      camera.position.copy(controls.target).addScaledVector(dirVec, distance);
+
+      camera.near = Math.max(0.01, maxDim / 100);
+      camera.far  = Math.max(2000, maxDim * 30);
+      camera.updateProjectionMatrix();
+
+      controls.minDistance = maxDim * 0.35;
+      controls.maxDistance = maxDim * 3.0;
+
+      controls.update();
+    }
+
+    // =========================
+    // Sun popup (jelly)
+    // =========================
+    const sunPopupOverlay = document.getElementById("sunPopupOverlay");
+    const sunPopupEls = {
+      jelly1: document.getElementById("sunPopupJelly1"),
+      jelly2: document.getElementById("sunPopupJelly2"),
+      tree1: document.getElementById("sunPopupCredits")
+    };
+    let popupOpen = false;
+
+    function closeAllSunPopups(){
+      for (const k in sunPopupEls){
+        sunPopupEls[k]?.classList.remove("is-on");
+      }
+    }
+
+    function openSunPopupFor(key){
+      const el = sunPopupEls[key] || sunPopupEls.jelly1;
+      if (!el || !sunPopupOverlay) return;
+
+      popupOpen = true;
+      closeAllSunPopups();
+
+      sunPopupOverlay.classList.add("is-on");
+      sunPopupOverlay.setAttribute("aria-hidden", "false");
+      el.classList.add("is-on");
+    }
+
+    function closeSunPopup(){
+      if (!sunPopupOverlay) return;
+      popupOpen = false;
+      closeAllSunPopups();
+      sunPopupOverlay.classList.remove("is-on");
+      sunPopupOverlay.setAttribute("aria-hidden", "true");
+      resetSlider("sunPopupJelly1");
+      resetSlider("sunPopupJelly2");
+    }
+
+    const chatStack = document.getElementById("sunChatStack");
+    const CHAT_IMAGES = [
+      "./assets/Chat1.png",
+      "./assets/Chat2.png",
+      "./assets/Chat3.png",
+      "./assets/Chat4.png",
+      "./assets/Chat5.png",
+      "./assets/Chat6.png",
+      "./assets/Chat7.png",
+      "./assets/Chat8.png",
+      "./assets/Chat9.png"
+    ];
+    let chatOffsetLeft = false;
+
+    function spawnChatBubble(){
+      if (!chatStack) return;
+      const src = CHAT_IMAGES[(Math.random() * CHAT_IMAGES.length) | 0];
+
+      const bubble = document.createElement("div");
+      bubble.className = "sun-chat-bubble";
+      const offset = chatOffsetLeft ? -38 : 0;
+      chatOffsetLeft = !chatOffsetLeft;
+      bubble.style.setProperty("--chat-x", `${offset}px`);
+      const img = document.createElement("img");
+      img.src = src;
+      img.alt = "";
+      bubble.appendChild(img);
+
+      chatStack.prepend(bubble);
+      requestAnimationFrame(() => bubble.classList.add("is-on"));
+
+      const children = Array.from(chatStack.children);
+      if (children.length > 3) {
+        children[children.length - 1].remove();
+      }
+
+      window.setTimeout(() => {
+        bubble.classList.remove("is-on");
+        window.setTimeout(() => bubble.remove(), 220);
+      }, 2000);
+    }
+
+    document.querySelectorAll("[data-popup-close]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        closeSunPopup();
+      });
+    });
+
+    sunPopupOverlay?.addEventListener("click", (e) => {
+      if (e.target === sunPopupOverlay) closeSunPopup();
+    });
+
+    const sunPopupJelly1Slider = document.getElementById("sunPopupJelly1Slider");
+    const sunPopupJelly2Slider = document.getElementById("sunPopupJelly2Slider");
+    let sunPopupJelly1CurrentPage = 0;
+    let sunPopupJelly2CurrentPage = 0;
+    const sunPopupJelly1TotalPages = 5;
+    const sunPopupJelly2TotalPages = 6;
+
+    function updateSliderJelly1(page){
+      sunPopupJelly1CurrentPage = Math.max(0, Math.min(page, sunPopupJelly1TotalPages - 1));
+      if (sunPopupJelly1Slider) {
+        const slides = sunPopupJelly1Slider.querySelectorAll(".sun-popup-slide");
+        slides.forEach((slide, index) => {
+          if (index === sunPopupJelly1CurrentPage) {
+            slide.classList.add("is-active");
+          } else {
+            slide.classList.remove("is-active");
+          }
+        });
+        sunPopupJelly1Slider.setAttribute("data-page", sunPopupJelly1CurrentPage);
+      }
+    }
+
+    function updateSliderJelly2(page){
+      sunPopupJelly2CurrentPage = Math.max(0, Math.min(page, sunPopupJelly2TotalPages - 1));
+      if (sunPopupJelly2Slider) {
+        const slides = sunPopupJelly2Slider.querySelectorAll(".sun-popup-slide");
+        slides.forEach((slide, index) => {
+          if (index === sunPopupJelly2CurrentPage) {
+            slide.classList.add("is-active");
+          } else {
+            slide.classList.remove("is-active");
+          }
+        });
+        sunPopupJelly2Slider.setAttribute("data-page", sunPopupJelly2CurrentPage);
+      }
+    }
+
+    function resetSlider(sliderId){
+      if (sliderId === "sunPopupJelly1") {
+        sunPopupJelly1CurrentPage = 0;
+        updateSliderJelly1(0);
+      } else if (sliderId === "sunPopupJelly2") {
+        sunPopupJelly2CurrentPage = 0;
+        updateSliderJelly2(0);
+      }
+    }
+
+    function goToSliderPage(sliderId, direction){
+      if (sliderId === "sunPopupJelly1") {
+        const newPage = direction === "next"
+          ? sunPopupJelly1CurrentPage + 1
+          : sunPopupJelly1CurrentPage - 1;
+        updateSliderJelly1(newPage);
+      } else if (sliderId === "sunPopupJelly2") {
+        const newPage = direction === "next"
+          ? sunPopupJelly2CurrentPage + 1
+          : sunPopupJelly2CurrentPage - 1;
+        updateSliderJelly2(newPage);
+      }
+    }
+
+    document.querySelectorAll("[data-slider]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const sliderId = btn.dataset.slider;
+        const direction = btn.dataset.direction;
+        goToSliderPage(sliderId, direction);
+      });
+    });
+
+    if (sunPopupJelly1Slider) {
+      const firstSlide = sunPopupJelly1Slider.querySelector(".sun-popup-slide");
+      if (firstSlide) {
+        firstSlide.classList.add("is-active");
+      }
+      updateSliderJelly1(0);
+    }
+
+    if (sunPopupJelly2Slider) {
+      const firstSlide = sunPopupJelly2Slider.querySelector(".sun-popup-slide");
+      if (firstSlide) {
+        firstSlide.classList.add("is-active");
+      }
+      updateSliderJelly2(0);
+    }
+
+    // =========================
+    // ✅ Raycaster: Hover only
+    // =========================
+    const raycaster = new THREE.Raycaster();
+    const ndc = new THREE.Vector2();
+
+    const INTERACT_NAMES = new Set([
+      "tree1",
+      "cat",
+      "book1",
+      "jelly1",
+      "jelly2",
+      "cake1"
+    ]);
+
+    let interactRoots = [];
+    let hovered = null;
+
+    function findInteractiveRoot(obj){
+      let cur = obj;
+      while (cur){
+        if (typeof cur.name === "string" && INTERACT_NAMES.has(cur.name)) return cur;
+        cur = cur.parent || null;
+      }
+      return null;
+    }
+
+    function setRayFromEvent(e){
+      const rect = frame.getBoundingClientRect();
+      const s = getScale();
+
+      const x = (e.clientX - rect.left) / s;
+      const y = (e.clientY - rect.top) / s;
+
+      if (x < 0 || y < 0 || x > BASE_W || y > BASE_H) return false;
+
+      ndc.x = (x / BASE_W) * 2 - 1;
+      ndc.y = -(y / BASE_H) * 2 + 1;
+      raycaster.setFromCamera(ndc, camera);
+      return true;
+    }
+
+    function clearHover(){
+      hovered = null;
+      outlinePass.selectedObjects = [];
+      renderer.domElement.style.cursor = "default";
+    }
+
+    let lastHoverCheck = 0;
+    const HOVER_INTERVAL_MS = 16;
+
+    function onPointerMove(e){
+      if (popupOpen) { clearHover(); return; }
+      if (!roomRoot) return;
+
+      const now = performance.now();
+      if (now - lastHoverCheck < HOVER_INTERVAL_MS) return;
+      lastHoverCheck = now;
+
+      if (!setRayFromEvent(e)) { clearHover(); return; }
+      if (!interactRoots.length) { clearHover(); return; }
+
+      const hits = raycaster.intersectObjects(interactRoots, true);
+      if (!hits || hits.length === 0) {
+        if (hovered) clearHover();
+        return;
+      }
+
+      let found = null;
+      for (const hit of hits){
+        const root = findInteractiveRoot(hit.object);
+        if (root) { found = root; break; }
+      }
+
+      if (!found) {
+        if (hovered) clearHover();
+        return;
+      }
+
+      if (hovered === found) return;
+
+      hovered = found;
+      outlinePass.selectedObjects = [found];
+      renderer.domElement.style.cursor = "pointer";
+    }
+
+    renderer.domElement.addEventListener("pointermove", onPointerMove);
+    renderer.domElement.addEventListener("pointerleave", clearHover);
+    function onClick(e){
+      if (popupOpen) return;
+      if (!roomRoot) return;
+      if (!setRayFromEvent(e)) return;
+      if (!interactRoots.length) return;
+
+      const hits = raycaster.intersectObjects(interactRoots, true);
+      if (!hits || hits.length === 0) return;
+
+      for (const hit of hits){
+        const root = findInteractiveRoot(hit.object);
+        if (!root) continue;
+
+        if (root.name === "jelly1" || root.name === "jelly2") {
+          openSunPopupFor(root.name);
+          return;
+        }
+        if (root.name === "tree1") {
+          openSunPopupFor("tree1");
+          return;
+        }
+        if (root.name === "cat") {
+          spawnChatBubble();
+          return;
+        }
+        return;
+      }
+    }
+    renderer.domElement.addEventListener("click", onClick);
+
+    // =========================
+    // ✅ GLB 로드
+    // =========================
+    const GLB_URL = "./assets/sun_room.glb"; // 경로는 추측입니다
+
+    loader.load(
+      GLB_URL,
+      (gltf) => {
+        roomRoot = gltf.scene;
+        scene.add(roomRoot);
+
+        // 색공간 보정
+        roomRoot.traverse((o) => {
+          if (!o.isMesh) return;
+          const m = o.material;
+          if (!m) return;
+
+          const mats = Array.isArray(m) ? m : [m];
+          for (const mat of mats){
+            if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
+            mat.needsUpdate = true;
+          }
+        });
+
+        // 인터랙션 대상 캐싱
+        interactRoots = [];
+        for (const name of INTERACT_NAMES){
+          const o = roomRoot.getObjectByName(name);
+          if (o) interactRoots.push(o);
+        }
+
+        const topPlate = roomRoot.getObjectByName("Cylinder.019");
+        if (topPlate) {
+          const s = topPlate.scale;
+          const avg = (s.x + s.z) * 0.5;
+          topPlate.scale.set(avg, s.y, avg);
+        }
+
+        fitCameraToObject(roomRoot);
+      },
+      undefined,
+      (err) => {
+        console.error("[SunRoom] GLB load failed:", err);
+      }
+    );
+
+    // =========================
+    // ✅ Render loop
+    // =========================
+    function tick(){
+      controls.update();
+      composer.render();
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    // =========================
+    // Star trail particles (from next.html)
+    // =========================
+    const starCanvas = document.getElementById("starTrail");
+    const starCtx = starCanvas?.getContext("2d", { alpha: true });
+
+    const STAR_MAX = 140;
+    const STAR_SPAWN_RATE = 3;
+    const STAR_LIFE_MIN = 420;
+    const STAR_LIFE_MAX = 900;
+    const STAR_SPEED_MIN = 0.35;
+    const STAR_SPEED_MAX = 1.45;
+
+    const STAR_COLORS = [
+      "rgba(254,255,221,0.98)",
+      "rgba(254,255,221,0.92)",
+      "rgba(254,255,221,0.85)"
+    ];
+
+    let starParticles = [];
+    let starRunning = true;
+    let lastMouse = null;
+
+    function getScaleSunRoom(){
+      const rect = frame.getBoundingClientRect();
+      return rect.width / BASE_W;
+    }
+
+    function getLocalPosFromEvent(e){
+      const rect = frame.getBoundingClientRect();
+      const s = getScaleSunRoom();
+
+      const cx = (e.clientX - rect.left) / s;
+      const cy = (e.clientY - rect.top) / s;
+
+      if (cx < 0 || cy < 0 || cx > BASE_W || cy > BASE_H) return null;
+      return { x: cx, y: cy };
+    }
+
+    function rand(min, max){ return min + Math.random() * (max - min); }
+    function pick(arr){ return arr[(Math.random() * arr.length) | 0]; }
+
+    function spawnStars(x, y, dx, dy){
+      if (!starRunning) return;
+
+      const dirLen = Math.hypot(dx, dy) || 1;
+      const ndx = dx / dirLen;
+      const ndy = dy / dirLen;
+
+      for (let i = 0; i < STAR_SPAWN_RATE; i++){
+        if (starParticles.length >= STAR_MAX) starParticles.shift();
+
+        const ox = rand(-10, 10);
+        const oy = rand(-10, 10);
+
+        const speed = rand(STAR_SPEED_MIN, STAR_SPEED_MAX);
+        const spread = rand(0.35, 1.1);
+
+        const vx = (ndx * speed * rand(0.6, 1.2)) + rand(-spread, spread);
+        const vy = (ndy * speed * rand(0.6, 1.2)) + rand(-spread, spread);
+
+        const life = rand(STAR_LIFE_MIN, STAR_LIFE_MAX);
+
+        starParticles.push({
+          x: x + ox,
+          y: y + oy,
+          px: x + ox,
+          py: y + oy,
+          vx,
+          vy,
+          t: 0,
+          life,
+          size: rand(0.7, 2.0),
+          glow: rand(2.5, 7.5),
+          color: pick(STAR_COLORS),
+          twist: rand(-0.03, 0.03)
+        });
+      }
+    }
+
+    function drawParticle(p, alpha){
+      starCtx.save();
+      starCtx.globalCompositeOperation = "lighter";
+      starCtx.globalAlpha = alpha;
+
+      starCtx.shadowBlur = p.glow;
+      starCtx.shadowColor = p.color;
+
+      starCtx.strokeStyle = p.color;
+      starCtx.lineWidth = Math.max(0.6, p.size);
+      starCtx.beginPath();
+      starCtx.moveTo(p.px, p.py);
+      starCtx.lineTo(p.x, p.y);
+      starCtx.stroke();
+
+      starCtx.fillStyle = p.color;
+      starCtx.beginPath();
+      starCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      starCtx.fill();
+
+      starCtx.restore();
+    }
+
+    let lastFrame = performance.now();
+    function tickStars(now){
+      if (!starCtx) return;
+
+      const dt = now - lastFrame;
+      lastFrame = now;
+
+      starCtx.clearRect(0, 0, BASE_W, BASE_H);
+
+      const next = [];
+      for (const p of starParticles){
+        p.t += dt;
+        if (p.t >= p.life) continue;
+
+        const u = p.t / p.life;
+        const alpha = (u < 0.15)
+          ? (u / 0.15) * 0.9
+          : (u < 0.75)
+            ? 0.9
+            : (1 - (u - 0.75) / 0.25) * 0.9;
+
+        const tvx = p.vx - p.vy * p.twist;
+        const tvy = p.vy + p.vx * p.twist;
+
+        p.px = p.x;
+        p.py = p.y;
+
+        p.x += tvx * (dt / 16.67);
+        p.y += tvy * (dt / 16.67);
+
+        drawParticle(p, alpha);
+        next.push(p);
+      }
+
+      starParticles = next;
+      requestAnimationFrame(tickStars);
+    }
+
+    if (starCanvas && starCtx){
+      window.addEventListener("mousemove", (e) => {
+        const pos = getLocalPosFromEvent(e);
+        if (!pos) { lastMouse = null; return; }
+
+        if (!lastMouse){
+          lastMouse = { x: pos.x, y: pos.y };
+          spawnStars(pos.x, pos.y, 1, 0);
+          return;
+        }
+
+        const dx = pos.x - lastMouse.x;
+        const dy = pos.y - lastMouse.y;
+
+        if (Math.hypot(dx, dy) >= 0.8){
+          spawnStars(pos.x, pos.y, dx, dy);
+          lastMouse = { x: pos.x, y: pos.y };
+        }
+      });
+
+      window.addEventListener("touchmove", (e) => {
+        const t = e.touches?.[0];
+        if (!t) return;
+        const pos = getLocalPosFromEvent(t);
+        if (!pos) return;
+        spawnStars(pos.x, pos.y, 1, 0);
+      }, { passive: true });
+
+      requestAnimationFrame(tickStars);
+    }
+
+    // =========================
+    // ✅ Navigation
+    // =========================
+    document.getElementById("MoonGo")?.addEventListener("click", () => {
+      window.location.href = "./moon-room.html";
+    });
+
+    document.getElementById("SunGo")?.addEventListener("click", () => {
+      window.location.href = "./sun-room.html";
+    });
+
+    document.getElementById("HomeGo")?.addEventListener("click", () => {
+      window.location.href = "./index.html";
+    });
+  </script>
+</body>
+</html>

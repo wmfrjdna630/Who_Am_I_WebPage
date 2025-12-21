@@ -343,6 +343,7 @@ body{
   height:48px;
   left: calc(50% - 664px/2);
   top:238px;
+  text-align:center;
 
   font-family:'soya_ssal9';
   font-style: normal;
@@ -360,6 +361,7 @@ body{
   height:24px;
   left: calc(50% - 555px/2 + 0.5px);
   top:210px;
+  text-align:center;
 
   font-family:'soya_ssal9';
   font-style: normal;
@@ -570,6 +572,109 @@ body{
   display:block;
   pointer-events:none;
   z-index:1;
+}
+
+.next-overlay{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:2;
+}
+
+.next-black-cloud{
+  position:absolute;
+  left:50%;
+  top:56%;
+  width:1100px;
+  height:auto;
+  transform: translate(-50%, -50%);
+  z-index:1;
+}
+
+.next-sub{
+  position:absolute;
+  left:50%;
+  top:214px;
+  transform: translateX(-50%);
+  width:308px;
+  height:24px;
+  text-align:center;
+  font-family:'soya_ssal9';
+  font-style: normal;
+  font-weight:400;
+  font-size:19px;
+  line-height:24px;
+  letter-spacing:0.71em;
+  color:#FFFFFF;
+  z-index:2;
+}
+
+.next-title{
+  position:absolute;
+  left:50%;
+  top:242px;
+  transform: translateX(-50%);
+  width:579px;
+  height:48px;
+  text-align:center;
+  font-family:'soya_ssal9';
+  font-style: normal;
+  font-weight:400;
+  font-size:40px;
+  line-height:48px;
+  color:#FFFFFF;
+  z-index:2;
+}
+
+.next-start{
+  position:absolute;
+  left:719px;
+  top:510px;
+  width:12px;
+  height:24px;
+  transform: translateX(-50%);
+  font-family:'soya_ssal9';
+  font-style: normal;
+  font-weight:400;
+  font-size:20px;
+  line-height:24px;
+  letter-spacing:0.71em;
+  color:#FFFFFF;
+  z-index:2;
+}
+
+.next-end{
+  position:absolute;
+  left:400px;
+  top:450px;
+  width:44px;
+  height:24px;
+  transform: translateX(-50%);
+  font-family:'soya_ssal9';
+  font-style: normal;
+  font-weight:400;
+  font-size:20px;
+  line-height:24px;
+  letter-spacing:0.71em;
+  color:#FFFFFF;
+  z-index:2;
+}
+
+.next-dots{
+  position:absolute;
+  inset:0;
+  width:1440px;
+  height:1024px;
+  z-index:2;
+}
+
+.next-draw{
+  position:absolute;
+  inset:0;
+  width:1440px;
+  height:1024px;
+  z-index:3;
+  pointer-events:auto;
 }
 
 /* =========================
