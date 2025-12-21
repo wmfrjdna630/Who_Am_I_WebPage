@@ -507,6 +507,49 @@
     }
 
     // =========================
+    // ✅ Bottle 인터랙션 시스템
+    // =========================
+    const BOTTLE_COLORS = {
+      "bt1": "#868580",
+      "bt2": "#FF005C",
+      "bt3": "#C260C1",
+      "bt4": "#868580",
+      "BT5": "#45FF24",
+      "BT6": "#3BE2AF",
+      "BT7": "#FFF110",
+      "BT8": "#8A00FF",
+      "BT9": "#004DFF",
+      "BT10": "#3BE2AF"
+    };
+
+    let selectedBottle = null;
+    let selectedBottleObject = null;
+
+    function selectBottle(bottleName){
+      if (BOTTLE_COLORS[bottleName]) {
+        selectedBottle = bottleName;
+        
+        // ✅ 선택된 bottle 오브젝트 찾기
+        const bottleObj = roomRoot?.getObjectByName(bottleName);
+        if (bottleObj) {
+          selectedBottleObject = bottleObj;
+          // ✅ 선택된 bottle을 outlinePass로 강조
+          outlinePass.selectedObjects = [bottleObj];
+        }
+        
+        showNamePopup(`선택됨: ${bottleName}`);
+      }
+    }
+
+    function applyBottleColorToCauldron(bottleName){
+      const color = BOTTLE_COLORS[bottleName];
+      if (color) {
+        setMoodColor(color);
+        showNamePopup(`가마솥 색상 변경: ${bottleName}`);
+      }
+    }
+
+    // =========================
     // ✅ Three 기본 셋업
     // =========================
     const host = document.getElementById("webglHost");
@@ -574,9 +617,9 @@
     composer.addPass(new RenderPass(scene, camera));
 
     const outlinePass = new OutlinePass(new THREE.Vector2(BASE_W, BASE_H), scene, camera);
-    outlinePass.edgeStrength = 7.0;
-    outlinePass.edgeThickness = 2.8;
-    outlinePass.edgeGlow = 0.35;
+    outlinePass.edgeStrength = 8.0;  // 7.0 -> 8.0 (더 강하게)
+    outlinePass.edgeThickness = 3.0;  // 2.8 -> 3.0 (더 두껍게)
+    outlinePass.edgeGlow = 0.5;  // 0.35 -> 0.5 (더 밝게)
     outlinePass.pulsePeriod = 0;
     outlinePass.visibleEdgeColor.set("#ffffff");
     outlinePass.hiddenEdgeColor.set("#000000");
@@ -1029,6 +1072,26 @@
           return;
         }
 
+        // ✅ bottle 클릭 시 선택
+        if (BOTTLE_COLORS[name]) {
+          selectBottle(name);
+          return;
+        }
+
+        // ✅ 가마솥 클릭 시 선택된 bottle 색상 적용
+        if (name === "cauldron001") {
+          if (selectedBottle) {
+            applyBottleColorToCauldron(selectedBottle);
+            // ✅ 가마솥 클릭 후 bottle 선택 해제 (선택사항)
+            selectedBottle = null;
+            selectedBottleObject = null;
+            outlinePass.selectedObjects = [];
+          } else {
+            showNamePopup("먼저 bottle을 선택하세요");
+          }
+          return;
+        }
+
         // ✅ 나머지는 기존대로 이름 팝업
         showNamePopup(name);
         return;
@@ -1041,13 +1104,18 @@
 
     function clearHover(){
       hovered = null;
-      outlinePass.selectedObjects = [];
+      // ✅ 선택된 bottle이 있으면 유지
+      if (selectedBottleObject) {
+        outlinePass.selectedObjects = [selectedBottleObject];
+      } else {
+        outlinePass.selectedObjects = [];
+      }
       renderer.domElement.style.cursor = "default";
     }
 
-    // ✅ pointermove 스로틀(30fps 정도로 제한)
+    // ✅ pointermove 스로틀 최적화 (더 빠른 반응)
     let lastHoverCheck = 0;
-    const HOVER_INTERVAL_MS = 33;
+    const HOVER_INTERVAL_MS = 16; // 33ms -> 16ms (60fps로 증가)
 
     function onPointerMove(e){
       // ✅ 팝업 열려있으면 hover도 막기
@@ -1062,22 +1130,44 @@
       if (!setRayFromEvent(e)) { clearHover(); return; }
       if (!interactRoots.length) { clearHover(); return; }
 
+      // ✅ raycaster 최적화: 더 정확한 감지
+      raycaster.params.Points = { threshold: 0.1 };
+      raycaster.params.Line = { threshold: 0.1 };
+      
       const hits = raycaster.intersectObjects(interactRoots, true);
-      if (!hits || hits.length === 0) { clearHover(); return; }
+      if (!hits || hits.length === 0) { 
+        if (hovered) clearHover();
+        return; 
+      }
 
       let found = null;
+      // ✅ 가장 가까운 hit부터 확인 (더 정확)
       for (const hit of hits){
         const root = findInteractiveRoot(hit.object);
-        if (root) { found = root; break; }
+        if (root) { 
+          found = root; 
+          break; 
+        }
       }
 
-      if (!found) { clearHover(); return; }
+      if (!found) { 
+        if (hovered) clearHover();
+        return; 
+      }
 
-      if (hovered !== found){
-        hovered = found;
+      // ✅ 같은 오브젝트면 업데이트 안 함 (성능 최적화)
+      if (hovered === found) return;
+
+      hovered = found;
+      
+      // ✅ 선택된 bottle이 있으면 hover와 함께 표시
+      if (selectedBottleObject) {
+        outlinePass.selectedObjects = [hovered, selectedBottleObject];
+      } else {
         outlinePass.selectedObjects = [hovered];
-        renderer.domElement.style.cursor = "pointer";
       }
+      
+      renderer.domElement.style.cursor = "pointer";
     }
 
     renderer.domElement.addEventListener("pointermove", onPointerMove);
@@ -1155,9 +1245,9 @@
     const starCanvas = document.getElementById("starTrail");
     const starCtx = starCanvas?.getContext("2d", { alpha: true });
 
-    /* 성능/감성 튜닝값 */
-    const STAR_MAX = 140;
-    const STAR_SPAWN_RATE = 3;
+    /* 성능/감성 튜닝값 (shadowBlur 제거로 파티클 수 증가 가능) */
+    const STAR_MAX = 120;  // shadowBlur 없이 더 많은 파티클 가능
+    const STAR_SPAWN_RATE = 3;  // 원래대로 복구
     const STAR_LIFE_MIN = 420;
     const STAR_LIFE_MAX = 900;
     const STAR_SPEED_MIN = 0.35;
@@ -1224,7 +1314,7 @@
           t: 0,
           life,
           size: rand(0.7, 2.0),
-          glow: rand(2.5, 7.5),
+          // glow 제거 (shadowBlur 사용 안 함)
           color: pick(STAR_COLORS),
           twist: rand(-0.03, 0.03)
         });
@@ -1236,8 +1326,8 @@
       starCtx.globalCompositeOperation = "lighter";
       starCtx.globalAlpha = alpha;
 
-      starCtx.shadowBlur = p.glow;
-      starCtx.shadowColor = p.color;
+      // ✅ shadowBlur 제거 (성능 최적화 - 가장 무거운 부분)
+      // shadowBlur는 각 파티클마다 렌더링 비용이 매우 큼
 
       starCtx.strokeStyle = p.color;
       starCtx.lineWidth = Math.max(0.6, p.size);
@@ -1257,6 +1347,12 @@
     let lastFrame = performance.now();
     function tickStars(now){
       if (!starCtx) return;
+      
+      // ✅ 팝업이 열려있으면 별가루 비활성화 (성능 최적화)
+      if (popupOpen) {
+        requestAnimationFrame(tickStars);
+        return;
+      }
 
       const dt = now - lastFrame;
       lastFrame = now;
@@ -1294,6 +1390,9 @@
 
     if (starCanvas && starCtx){
       window.addEventListener("mousemove", (e) => {
+        // ✅ 팝업이 열려있으면 별가루 생성 안 함 (성능 최적화)
+        if (popupOpen) return;
+        
         const pos = getLocalPosFromEvent(e);
         if (!pos) { lastMouse = null; return; }
 
