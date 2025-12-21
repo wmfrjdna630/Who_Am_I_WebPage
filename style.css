@@ -484,7 +484,7 @@ body{
 .black-fill{
   position:absolute;
   inset:0;
-  background:#000;
+  background:#fff;
   opacity:0;
   transition: opacity 900ms ease;
   z-index:0;
@@ -527,7 +527,7 @@ body{
 
   opacity:0;
   transition: opacity 220ms ease;
-  z-index:2; /* ✅ black-cloud 위 */
+  z-index:9999;
 }
 
 /* 1번 문구 */
@@ -536,6 +536,10 @@ body{
 /* 2번 문구 */
 .cloud-text-2{ opacity:0; }
 .cloud-text-2.is-on{ opacity:1; }
+
+.friends-overlay.white-transition .cloud-text{
+  color:#fff;
+}
 
 /* ===============================
    NEXT PAGE (임시)
@@ -628,15 +632,15 @@ body{
 
 .next-start{
   position:absolute;
-  left:719px;
-  top:510px;
+  left:751px;
+  top:545px;
   width:12px;
   height:24px;
   transform: translateX(-50%);
   font-family:'soya_ssal9';
   font-style: normal;
   font-weight:400;
-  font-size:20px;
+  font-size:19px;
   line-height:24px;
   letter-spacing:0.71em;
   color:#FFFFFF;
@@ -676,6 +680,7 @@ body{
   z-index:3;
   pointer-events:auto;
 }
+
 
 /* =========================
    ✅ 좌측 상단 네비 토큰 (index / moon-room / sun-room 전용)

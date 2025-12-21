@@ -80,6 +80,24 @@
           </svg>
         </div>
 
+        <div class="friends-overlay white-transition" id="friendsOverlay" aria-hidden="true">
+          <div class="black-fill"></div>
+
+          <img
+            class="black-cloud"
+            id="blackCloud"
+            src="./assets/white_cloud.png"
+            alt=""
+            draggable="false"
+          />
+        </div>
+
+        <div class="cloud-text cloud-text-1" id="cloudText1"></div>
+
+        <div class="cloud-text cloud-text-2" id="cloudText2">
+          당신을 초대할게요!
+        </div>
+
         <canvas class="next-draw" id="drawCanvas" width="1440" height="1024" aria-hidden="true"></canvas>
 
       </div>
@@ -113,46 +131,46 @@
 
     const drawCanvas = document.getElementById("drawCanvas");
     const drawCtx = drawCanvas?.getContext("2d");
-    const START_POS = { x: 718.7, y: 486.63 };
+    const START_POS = { x: 751.08, y: 515.41 };
     const END_POS = { x: 399.5, y: 427.5 };
     const DOT_POINTS = [
       START_POS,
-      { x: 749.68, y: 460.83 },
-      { x: 686.47, y: 513.43 },
-      { x: 666.03, y: 540.38 },
-      { x: 654.47, y: 578.17 },
-      { x: 651.74, y: 611.03 },
-      { x: 660.43, y: 641.95 },
-      { x: 672.45, y: 674.86 },
-      { x: 688.83, y: 705.81 },
-      { x: 712.55, y: 731.95 },
-      { x: 739.51, y: 750.66 },
-      { x: 770.57, y: 771.49 },
-      { x: 804.5, y: 784.89 },
-      { x: 838.57, y: 795.69 },
-      { x: 871.17, y: 801.15 },
-      { x: 903.68, y: 799.04 },
-      { x: 938.92, y: 794.96 },
-      { x: 974.44, y: 781.95 },
-      { x: 1007.16, y: 756.52 },
-      { x: 1038.55, y: 722.66 },
-      { x: 1056.07, y: 680.55 },
-      { x: 1069.37, y: 643.14 },
-      { x: 1080.34, y: 596.06 },
-      { x: 1077.65, y: 552.26 },
-      { x: 1069.63, y: 509.68 },
-      { x: 1054.35, y: 482.71 },
-      { x: 1024.61, y: 444.39 },
-      { x: 990.63, y: 410.77 },
-      { x: 951.25, y: 394 },
-      { x: 912.36, y: 378.1 },
-      { x: 874.18, y: 374.23 },
-      { x: 831.1, y: 383.25 },
-      { x: 798.5, y: 410.41 },
-      { x: 823.05, y: 443.62 },
-      { x: 821.54, y: 483.55 },
       { x: 786.21, y: 510.95 },
-      { x: 751.08, y: 515.41 },
+      { x: 821.54, y: 483.55 },
+      { x: 823.05, y: 443.62 },
+      { x: 798.5, y: 410.41 },
+      { x: 831.1, y: 383.25 },
+      { x: 874.18, y: 374.23 },
+      { x: 912.36, y: 378.1 },
+      { x: 951.25, y: 394 },
+      { x: 990.63, y: 410.77 },
+      { x: 1024.61, y: 444.39 },
+      { x: 1054.35, y: 482.71 },
+      { x: 1069.63, y: 509.68 },
+      { x: 1077.65, y: 552.26 },
+      { x: 1080.34, y: 596.06 },
+      { x: 1069.37, y: 643.14 },
+      { x: 1056.07, y: 680.55 },
+      { x: 1038.55, y: 722.66 },
+      { x: 1007.16, y: 756.52 },
+      { x: 974.44, y: 781.95 },
+      { x: 938.92, y: 794.96 },
+      { x: 903.68, y: 799.04 },
+      { x: 871.17, y: 801.15 },
+      { x: 838.57, y: 795.69 },
+      { x: 804.5, y: 784.89 },
+      { x: 770.57, y: 771.49 },
+      { x: 739.51, y: 750.66 },
+      { x: 712.55, y: 731.95 },
+      { x: 688.83, y: 705.81 },
+      { x: 672.45, y: 674.86 },
+      { x: 660.43, y: 641.95 },
+      { x: 651.74, y: 611.03 },
+      { x: 654.47, y: 578.17 },
+      { x: 666.03, y: 540.38 },
+      { x: 686.47, y: 513.43 },
+      { x: 718.7, y: 486.63 },
+      { x: 749.68, y: 460.83 },
       { x: 725.81, y: 442.88 },
       { x: 686.96, y: 418.41 },
       { x: 652.31, y: 398.31 },
@@ -170,6 +188,47 @@
     let lastSnap = null;
     let completed = false;
     let currentIndex = 0;
+    let transitionStarted = false;
+
+    const overlay = document.getElementById("friendsOverlay");
+    const blackFill = overlay?.querySelector(".black-fill");
+    const cloud = document.getElementById("blackCloud");
+    const t1 = document.getElementById("cloudText1");
+    const t2 = document.getElementById("cloudText2");
+    const CLOUD_W = 974;
+    const CLOUD_H = 618;
+    const FRAME_W = 1440;
+    const FRAME_H = 1024;
+
+    function runCloudSequence(){
+      if (transitionStarted) return;
+      transitionStarted = true;
+
+      starRunning = false;
+      starCanvas?.classList.add("is-off");
+
+      overlay?.classList.add("is-on");
+
+      cloud?.style.setProperty("--cloud-scale", "1");
+      t1?.classList.add("is-on");
+
+      const frameDiag = Math.hypot(FRAME_W, FRAME_H);
+      const cloudBase = Math.max(CLOUD_W, CLOUD_H);
+      const coverScale = (frameDiag / cloudBase) * 1.35;
+
+      setTimeout(() => {
+        t1?.classList.remove("is-on");
+        t2?.classList.add("is-on");
+
+        overlay?.classList.add("is-expand");
+        cloud?.style.setProperty("--cloud-scale", String(coverScale));
+
+        blackFill?.addEventListener("transitionend", (ev) => {
+          if (ev.propertyName !== "opacity") return;
+          window.location.href = "./sun-room.html";
+        }, { once: true });
+      }, 900);
+    }
 
     function clearDrawing(){
       if (!drawCtx) return;
@@ -209,6 +268,7 @@
       if (target.x === END_POS.x && target.y === END_POS.y) {
         completed = true;
         drawing = false;
+        runCloudSequence();
       }
       currentIndex = nextIndex;
     }
