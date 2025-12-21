@@ -55,32 +55,6 @@
       opacity:0;
     }
 
-    .name-popup{
-      position:absolute;
-      left:50%;
-      top:52%;
-      transform: translate(-50%, -50%);
-      padding:12px 18px;
-      border-radius:14px;
-
-      background: rgba(0,0,0,0.72);
-      color:#fff;
-
-      font-family:"Pretendard", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      font-size:16px;
-      line-height:1.2;
-      letter-spacing:0.08em;
-
-      opacity:0;
-      pointer-events:none;
-      transition: opacity 180ms ease;
-      z-index:9999;
-
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-    }
-    .name-popup.is-on{ opacity:1; }
-
     /* =========================
        ✅ Moon Room – Navigation Tokens
        ========================= */
@@ -136,7 +110,7 @@
       pointer-events:none;
       transition: opacity 220ms ease;
 
-      z-index:10000; /* namePopup(9999)보다 위 */
+      z-index:10000;
     }
     .moon-popup-overlay.is-on{
       opacity:1;
@@ -440,7 +414,6 @@
           </div>
         </div>
 
-        <div class="name-popup" id="namePopup" aria-live="polite"></div>
         <div class="moonroom-fade" id="moonRoomFade" aria-hidden="true"></div>
       </div>
     </main>
@@ -582,8 +555,8 @@
           // ✅ 선택된 bottle을 outlinePass로 강조
           outlinePass.selectedObjects = [bottleObj];
         }
+        return;
         
-        showNamePopup(`선택됨: ${bottleName}`);
       }
     }
 
@@ -592,7 +565,6 @@
       if (color) {
         applyMoodOverridesForBottle(bottleName);
         setMoodColor(color);
-        showNamePopup(`가마솥 색상 변경: ${bottleName}`);
       }
     }
 
@@ -754,16 +726,6 @@
     // =========================
     // ✅ 디버그 팝업
     // =========================
-    const popup = document.getElementById("namePopup");
-    let popupTimer = null;
-
-    function showNamePopup(text){
-      popup.textContent = text;
-      popup.classList.add("is-on");
-      if (popupTimer) clearTimeout(popupTimer);
-      popupTimer = setTimeout(() => popup.classList.remove("is-on"), 1100);
-    }
-
     // =========================
     // ✅ BOOK POPUP (추가)
     // =========================
@@ -1134,13 +1096,11 @@
             selectedBottleObject = null;
             outlinePass.selectedObjects = [];
           } else {
-            showNamePopup("먼저 bottle을 선택하세요");
           }
           return;
         }
 
         // ✅ 나머지는 기존대로 이름 팝업
-        showNamePopup(name);
         return;
       }
     }
@@ -1272,7 +1232,6 @@
       (err) => {
         console.error("[MoonRoom] GLB load failed:", err);
         requestAnimationFrame(() => fade?.classList.add("is-off"));
-        showNamePopup("GLB load failed");
       }
     );
 
