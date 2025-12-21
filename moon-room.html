@@ -16,41 +16,117 @@
     }
   </script>
 
-  <!-- ✅ 이 페이지에서만 필요한 최소 스타일(구조는 유지, 추가 요소만) -->
   <style>
-    /* 캔버스 내부에 WebGL을 “연출 레이어”로 얹기 */
-    .moonroom-webgl {
-      position: absolute;
-      left: 0; top: 0;
-      width: 1440px;
-      height: 1024px;
-      z-index: 2;
-      pointer-events: auto; /* 나중에 raycast 클릭을 위해 켜둠 */
+    .moonroom-webgl{
+      position:absolute;
+      left:0; top:0;
+      width:1440px;
+      height:1024px;
+      z-index:2;
+      pointer-events:auto;
     }
 
-    /* 로딩 중/전환용 검정 페이드 (friends의 검정 → room 진입을 자연스럽게) */
-    .moonroom-fade {
-      position: absolute;
-      inset: 0;
-      background: #000;
-      opacity: 1;
+    .moonroom-fade{
+      position:absolute;
+      inset:0;
+      background:#000;
+      opacity:1;
       transition: opacity 900ms ease;
-      z-index: 9999;
-      pointer-events: none;
+      z-index:9998;
+      pointer-events:none;
     }
-    .moonroom-fade.is-off { opacity: 0; }
+    .moonroom-fade.is-off{ opacity:0; }
+
+    .name-popup{
+      position:absolute;
+      left:50%;
+      top:52%;
+      transform: translate(-50%, -50%);
+      padding:12px 18px;
+      border-radius:14px;
+
+      background: rgba(0,0,0,0.72);
+      color:#fff;
+
+      font-family:"Pretendard", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-size:16px;
+      line-height:1.2;
+      letter-spacing:0.08em;
+
+      opacity:0;
+      pointer-events:none;
+      transition: opacity 180ms ease;
+      z-index:9999;
+
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .name-popup.is-on{ opacity:1; }
+
+    /* =========================
+       ✅ Moon Room – Navigation Tokens
+       ========================= */
+    .nav-tokens{
+      position:absolute;
+      left:48px;
+      top:48px;
+      display:flex;
+      align-items:center;
+      gap:18px;
+
+      z-index:9997;
+      pointer-events:auto;
+
+      transform: scale(0.68);
+      transform-origin: left top;
+    }
+
+    .nav-token{
+      appearance:none;
+      border:0;
+      background:transparent;
+      padding:0;
+      margin:0;
+      cursor:pointer;
+      line-height:0;
+    }
+
+    .nav-token img{
+      display:block;
+      width:64px;
+      height:64px;
+      user-select:none;
+      -webkit-user-drag:none;
+      transform: translateZ(0);
+    }
+
+    .nav-token:hover img{ opacity:0.9; }
+    .nav-token:active img{ transform: translateZ(0) scale(0.98); }
   </style>
 </head>
 
 <body>
   <div class="stage">
     <main class="frame" id="frameMoonRoom">
-      <!-- ✅ 1440×1024 좌표계 캔버스 -->
       <div class="canvas" id="canvasMoonRoom" style="background:#000;">
-        <!-- ✅ WebGL 들어갈 자리 -->
         <div id="webglHost" class="moonroom-webgl" aria-hidden="true"></div>
 
-        <!-- ✅ 진입 페이드 (검정에서 서서히 등장) -->
+        <!-- ✅ 좌상단 토큰 -->
+        <div class="nav-tokens" aria-label="quick navigation">
+          <button class="nav-token" type="button" id="MoonGo" aria-label="MoonGo">
+            <img src="./assets/MoonGo.png" alt="" draggable="false" />
+          </button>
+
+          <button class="nav-token" type="button" id="SunGo" aria-label="SunGo">
+            <img src="./assets/SunGo.png" alt="" draggable="false" />
+          </button>
+
+          <button class="nav-token" type="button" id="HomeGo" aria-label="HomeGo">
+            <img src="./assets/HomeGo.png" alt="" draggable="false" />
+          </button>
+        </div>
+
+        <div class="name-popup" id="namePopup" aria-live="polite"></div>
         <div class="moonroom-fade" id="moonRoomFade" aria-hidden="true"></div>
       </div>
     </main>
@@ -61,8 +137,13 @@
     import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
+    import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+    import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+    import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+    import { OutlinePass } from "three/addons/postprocessing/OutlinePass.js";
+
     // =========================
-    // ✅ 1440×1024 고정 좌표계 + scale(--s) (index/moon/friends 동일)
+    // ✅ 1440×1024 고정 좌표계 + scale(--s)
     // =========================
     const BASE_W = 1440;
     const BASE_H = 1024;
@@ -70,7 +151,7 @@
     const frame = document.getElementById("frameMoonRoom");
     const canvas = document.getElementById("canvasMoonRoom");
 
-    function setScale() {
+    function setScale(){
       const s = Math.min(
         1,
         (window.innerWidth - 40) / BASE_W,
@@ -82,112 +163,319 @@
     window.addEventListener("resize", setScale);
     setScale();
 
-    function getScale() {
+    function getScale(){
       const rect = frame.getBoundingClientRect();
       return rect.width / BASE_W;
     }
 
     // =========================
-    // ✅ Three 기본 셋업 (1440×1024 내부 렌더 크기 고정)
+    // ✅ 배경색 랜덤 (진입 시 1회)
+    // =========================
+    const BG_COLORS = ["#2E4F4E", "#4A5142", "#2F3646", "#4B3C4C"];
+    const BG_COLOR = BG_COLORS[(Math.random() * BG_COLORS.length) | 0];
+    canvas.style.background = BG_COLOR;
+
+    // =========================
+    // ✅ Mood
+    // =========================
+    const MOOD = {
+      colorHex: "#5ffbff",
+      waterEmissiveIntensity: 2.2,
+      lightIntensity: 1.25,
+      lightDistance: 6.0,
+      lightDecay: 2.0,
+      bloom: { strength: 0.5, radius: 0.4, threshold: 0.75 }
+    };
+
+    function setMoodColor(hex){
+      MOOD.colorHex = hex;
+      applyMood();
+    }
+
+    // =========================
+    // ✅ Three 기본 셋업
     // =========================
     const host = document.getElementById("webglHost");
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: true,          // 필요 시 배경 합성 가능
-      preserveDrawingBuffer: false
-    });
+    const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false });
     renderer.setSize(BASE_W, BASE_H, false);
-    renderer.setPixelRatio(1);  // ✅ 내부 픽셀 비율도 고정(철학 유지)
-    host.appendChild(renderer.domElement);
+    renderer.setPixelRatio(1);
 
-    // domElement도 1440×1024 고정
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    // ✅ clearColor는 sRGB(hex) -> Linear로 변환해서 넣어야 “원래 색감”에 가까움
+    const clear = new THREE.Color(BG_COLOR);
+    clear.convertSRGBToLinear();
+    renderer.setClearColor(clear, 1);
+
+    host.appendChild(renderer.domElement);
     renderer.domElement.style.width = BASE_W + "px";
     renderer.domElement.style.height = BASE_H + "px";
     renderer.domElement.style.display = "block";
 
     const scene = new THREE.Scene();
-
-    // 카메라는 GLB 로드 후 bounding box로 fit할 것
-    const camera = new THREE.PerspectiveCamera(35, BASE_W / BASE_H, 0.01, 1000);
+    const camera = new THREE.PerspectiveCamera(35, BASE_W / BASE_H, 0.01, 2000);
     camera.position.set(0, 0, 5);
 
-    // 라이트 (최소)
-    const ambient = new THREE.AmbientLight(0xffffff, 0.9);
+    // =========================
+    // ✅ 라이트
+    // =========================
+    const ambient = new THREE.AmbientLight(0xffffff, 1.05);
     scene.add(ambient);
 
-    const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.85);
     dir.position.set(2, 3, 4);
     scene.add(dir);
 
+    const glowLight = new THREE.PointLight(
+      new THREE.Color(MOOD.colorHex),
+      MOOD.lightIntensity,
+      MOOD.lightDistance,
+      MOOD.lightDecay
+    );
+    glowLight.visible = false;
+    scene.add(glowLight);
+
     // =========================
-    // ✅ OrbitControls (확정된 절대 변경 불가 기준 그대로 적용)
+    // ✅ OrbitControls
     // =========================
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
 
-    // ✅ 확정 회전 제한
     controls.minAzimuthAngle = -Math.PI / 2;
     controls.maxAzimuthAngle = 0;
 
     controls.minPolarAngle = Math.PI / 4;
-    controls.maxPolarAngle = Math.PI / 2;
-
-    // (관람 UX) 필요하면 패닝/줌은 다음 단계에서 결정해도 됨
-    // 여기서는 일단 기본값 유지 (바꾸자고 제안 안 함)
+    controls.maxPolarAngle = Math.PI * 75 / 180;
 
     // =========================
-    // ✅ GLB 로드 + bounding box 기반 auto-fit
+    // ✅ Postprocessing: Render -> Outline(hover) -> Bloom
     // =========================
-    const GLB_URL = "./assets/room.glb"; // ✅ 추측입니다. 실제 위치에 맞게 수정하세요.
+    const composer = new EffectComposer(renderer);
+    composer.setSize(BASE_W, BASE_H);
+
+    composer.addPass(new RenderPass(scene, camera));
+
+    const outlinePass = new OutlinePass(new THREE.Vector2(BASE_W, BASE_H), scene, camera);
+    outlinePass.edgeStrength = 7.0;
+    outlinePass.edgeThickness = 2.8;
+    outlinePass.edgeGlow = 0.35;
+    outlinePass.pulsePeriod = 0;
+    outlinePass.visibleEdgeColor.set("#ffffff");
+    outlinePass.hiddenEdgeColor.set("#000000");
+    composer.addPass(outlinePass);
+
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(BASE_W, BASE_H),
+      MOOD.bloom.strength,
+      MOOD.bloom.radius,
+      MOOD.bloom.threshold
+    );
+    composer.addPass(bloomPass);
+
+    function applyBloomFromMood(){
+      bloomPass.strength = MOOD.bloom.strength;
+      bloomPass.radius = MOOD.bloom.radius;
+      bloomPass.threshold = MOOD.bloom.threshold;
+    }
+
+    // =========================
+    // ✅ GLB 로드 + bbox 기반 auto-fit
+    // =========================
+    const GLB_URL = "./assets/last_last_room.glb";
 
     const loader = new GLTFLoader();
-
     let roomRoot = null;
+    let waterMesh = null;
 
-    function fitCameraToObject(object3D) {
+    function fitCameraToObject(object3D){
       const box = new THREE.Box3().setFromObject(object3D);
       const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
 
-      // controls target = center
       controls.target.copy(center);
 
-      // 카메라 거리 계산: 가장 큰 축 기준으로 적당히 맞춤
       const maxDim = Math.max(size.x, size.y, size.z);
       const fov = THREE.MathUtils.degToRad(camera.fov);
       let distance = (maxDim * 0.5) / Math.tan(fov * 0.5);
-
-      // 약간의 여유(너무 딱 붙지 않게)
       distance *= 1.25;
 
-      // ✅ “이때 설정된 카메라 방향이 azimuthAngle = 0 기준”
-      // -> load 직후의 camera 방향을 기준으로 controls를 세팅하는 의미로,
-      //    여기서는 center를 바라보는 기본 방향(현재 camera 위치 방향)을 유지한 채 distance만 맞춤.
-      const dir = new THREE.Vector3()
+      const dirVec = new THREE.Vector3()
         .subVectors(camera.position, controls.target)
         .normalize();
 
-      // 혹시 초기 dir이 0이면 안전 처리
-      if (!isFinite(dir.x) || dir.lengthSq() < 1e-8) {
-        dir.set(0, 0.2, 1).normalize();
+      if (!isFinite(dirVec.x) || dirVec.lengthSq() < 1e-8) {
+        dirVec.set(0, 0.2, 1).normalize();
       }
 
-      camera.position.copy(controls.target).addScaledVector(dir, distance);
+      camera.position.copy(controls.target).addScaledVector(dirVec, distance);
       camera.lookAt(controls.target);
 
-      // near/far: 모델 크기 기준
       camera.near = Math.max(0.01, maxDim / 100);
-      camera.far  = Math.max(1000, maxDim * 20);
+      camera.far  = Math.max(2000, maxDim * 30);
       camera.updateProjectionMatrix();
 
-      // distance 제한도 모델 기준
       controls.minDistance = maxDim * 0.25;
       controls.maxDistance = maxDim * 2.5;
 
       controls.update();
     }
+
+    function applyMood(){
+      const c = new THREE.Color(MOOD.colorHex);
+
+      if (waterMesh && waterMesh.material){
+        const mats = Array.isArray(waterMesh.material) ? waterMesh.material : [waterMesh.material];
+        for (const m of mats){
+          if (m.color) m.color.copy(c);
+          if (m.emissive) m.emissive.copy(c);
+          if (typeof m.emissiveIntensity === "number") {
+            m.emissiveIntensity = MOOD.waterEmissiveIntensity;
+          }
+          m.needsUpdate = true;
+        }
+      }
+
+      glowLight.color.copy(c);
+      glowLight.intensity = MOOD.lightIntensity;
+      glowLight.distance = MOOD.lightDistance;
+      glowLight.decay = MOOD.lightDecay;
+
+      applyBloomFromMood();
+    }
+
+    // =========================
+    // ✅ 디버그 팝업
+    // =========================
+    const popup = document.getElementById("namePopup");
+    let popupTimer = null;
+
+    function showNamePopup(text){
+      popup.textContent = text;
+      popup.classList.add("is-on");
+      if (popupTimer) clearTimeout(popupTimer);
+      popupTimer = setTimeout(() => popup.classList.remove("is-on"), 1100);
+    }
+
+    // =========================
+    // ✅ Raycaster: 클릭 + Hover(외곽선) (캐싱+스로틀)
+    // =========================
+    const raycaster = new THREE.Raycaster();
+    const ndc = new THREE.Vector2();
+
+    const INTERACT_NAMES = new Set([
+      "cauldron001",
+      "Water_Surface",
+      "book1","book2","book3","book4",
+      "bt1","bt2","bt3","bt4",
+      "BT5","BT6","BT7","BT8","BT9","BT10"
+    ]);
+
+    // ✅ 인터랙티브 대상만 따로 캐싱해둘 배열(성능 핵심)
+    let interactRoots = [];
+
+    function findInteractiveName(obj){
+      let cur = obj;
+      while (cur){
+        if (typeof cur.name === "string" && INTERACT_NAMES.has(cur.name)) return cur.name;
+        cur = cur.parent || null;
+      }
+      return null;
+    }
+
+    function findInteractiveRoot(obj){
+      let cur = obj;
+      while (cur){
+        if (typeof cur.name === "string" && INTERACT_NAMES.has(cur.name)) return cur;
+        cur = cur.parent || null;
+      }
+      return null;
+    }
+
+    function setRayFromEvent(e){
+      const rect = frame.getBoundingClientRect();
+      const s = getScale();
+
+      const x = (e.clientX - rect.left) / s;
+      const y = (e.clientY - rect.top) / s;
+
+      if (x < 0 || y < 0 || x > BASE_W || y > BASE_H) return false;
+
+      ndc.x = (x / BASE_W) * 2 - 1;
+      ndc.y = -(y / BASE_H) * 2 + 1;
+      raycaster.setFromCamera(ndc, camera);
+      return true;
+    }
+
+    function onClick(e){
+      if (!roomRoot) return;
+      if (!setRayFromEvent(e)) return;
+      if (!interactRoots.length) return;
+
+      const hits = raycaster.intersectObjects(interactRoots, true);
+      if (!hits || hits.length === 0) return;
+
+      for (const hit of hits){
+        const name = findInteractiveName(hit.object);
+        if (name){
+          showNamePopup(name);
+          return;
+        }
+      }
+    }
+    renderer.domElement.addEventListener("click", onClick);
+
+    // ✅ Hover 상태
+    let hovered = null;
+
+    function clearHover(){
+      hovered = null;
+      outlinePass.selectedObjects = [];
+      renderer.domElement.style.cursor = "default";
+    }
+
+    // ✅ pointermove 스로틀(30fps 정도로 제한)
+    let lastHoverCheck = 0;
+    const HOVER_INTERVAL_MS = 33;
+
+    function onPointerMove(e){
+      if (!roomRoot) return;
+
+      const now = performance.now();
+      if (now - lastHoverCheck < HOVER_INTERVAL_MS) return;
+      lastHoverCheck = now;
+
+      if (!setRayFromEvent(e)) { clearHover(); return; }
+      if (!interactRoots.length) { clearHover(); return; }
+
+      const hits = raycaster.intersectObjects(interactRoots, true);
+      if (!hits || hits.length === 0) { clearHover(); return; }
+
+      let found = null;
+      for (const hit of hits){
+        const root = findInteractiveRoot(hit.object);
+        if (root) { found = root; break; }
+      }
+
+      if (!found) { clearHover(); return; }
+
+      if (hovered !== found){
+        hovered = found;
+        outlinePass.selectedObjects = [hovered];
+        renderer.domElement.style.cursor = "pointer";
+      }
+    }
+
+    renderer.domElement.addEventListener("pointermove", onPointerMove);
+    renderer.domElement.addEventListener("pointerleave", clearHover);
+
+    // =========================
+    // ✅ 로드 시작/완료 처리
+    // =========================
+    const fade = document.getElementById("moonRoomFade");
 
     loader.load(
       GLB_URL,
@@ -195,45 +483,77 @@
         roomRoot = gltf.scene;
         scene.add(roomRoot);
 
-        // 모델이 너무 어둡거나 밝으면 라이트 조정은 “다음 단계”에서 (지금은 손 안 댐)
+        // 텍스처 색공간 보정
+        roomRoot.traverse((o) => {
+          if (!o.isMesh) return;
+          const m = o.material;
+          if (!m) return;
+
+          const mats = Array.isArray(m) ? m : [m];
+          for (const mat of mats){
+            if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
+            if (mat.emissiveMap) mat.emissiveMap.colorSpace = THREE.SRGBColorSpace;
+            mat.needsUpdate = true;
+          }
+        });
+
+        // ✅ 인터랙티브 대상만 캐싱 (성능 핵심)
+        interactRoots = [];
+        for (const name of INTERACT_NAMES){
+          const o = roomRoot.getObjectByName(name);
+          if (o) interactRoots.push(o);
+        }
+
+        waterMesh = roomRoot.getObjectByName("Water_Surface") || null;
+
         fitCameraToObject(roomRoot);
 
-        // ✅ 로드 완료 후 페이드 아웃
-        const fade = document.getElementById("moonRoomFade");
+        if (waterMesh){
+          const p = new THREE.Vector3();
+          waterMesh.getWorldPosition(p);
+          glowLight.position.copy(p).add(new THREE.Vector3(0, 0.12, 0));
+          glowLight.visible = true;
+        } else {
+          glowLight.visible = false;
+        }
+
+        applyMood();
         requestAnimationFrame(() => fade?.classList.add("is-off"));
       },
       undefined,
       (err) => {
         console.error("[MoonRoom] GLB load failed:", err);
-        // 실패해도 검정 화면 유지(깨진 장면 노출 방지)
+        requestAnimationFrame(() => fade?.classList.add("is-off"));
+        showNamePopup("GLB load failed");
       }
     );
 
     // =========================
-    // ✅ (임시) 렌더 루프
+    // ✅ 렌더 루프
     // =========================
-    function tick() {
+    function tick(){
       controls.update();
-      renderer.render(scene, camera);
+      composer.render();
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
 
+    window.setMoodColor = setMoodColor;
+
     // =========================
-    // ✅ (다음 단계용) 마우스 좌표를 1440×1024 로컬로 변환하는 함수만 미리 준비
+    // ✅ Navigation Tokens
     // =========================
-    function getLocalPosFromEvent(e) {
-      const rect = frame.getBoundingClientRect();
-      const s = getScale();
+    document.getElementById("MoonGo")?.addEventListener("click", () => {
+      window.location.href = "./moon-room.html";
+    });
 
-      const x = (e.clientX - rect.left) / s;
-      const y = (e.clientY - rect.top) / s;
+    document.getElementById("SunGo")?.addEventListener("click", () => {
+      // window.location.href = "./sun-room.html";
+    });
 
-      if (x < 0 || y < 0 || x > 1440 || y > 1024) return null;
-      return { x, y };
-    }
-
-    // (클릭 타겟 제한 + 병/책/가마솥 클릭 반응은 다음 단계에서 붙임)
+    document.getElementById("HomeGo")?.addEventListener("click", () => {
+      window.location.href = "./index.html";
+    });
   </script>
 </body>
 </html>

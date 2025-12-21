@@ -571,3 +571,48 @@ body{
   pointer-events:none;
   z-index:1;
 }
+
+/* =========================
+   ✅ 좌측 상단 네비 토큰 (index / moon-room / sun-room 전용)
+   - 1440x1024 고정 좌표계(canvas) 기준
+   ========================= */
+   .nav-tokens{
+    position:absolute;
+    left:48px;
+    top:48px;        /* ✅ 좌상단 */
+    bottom:auto;
+  
+    display:flex;
+    align-items:center;
+    gap:18px;
+  
+    z-index:60;
+    pointer-events:auto;
+  
+    /* ✅ 전체 크기 68% */
+    transform: scale(0.68);
+    transform-origin: left top;
+  }
+  
+  .nav-token{
+    appearance:none;
+    border:0;
+    background:transparent;
+    padding:0;
+    margin:0;
+    cursor:pointer;
+    line-height:0;
+  }
+  
+  .nav-token img{
+    display:block;
+    width:64px;
+    height:64px;
+    user-select:none;
+    -webkit-user-drag:none;
+    transform: translateZ(0);
+  }
+  
+  .nav-token:hover img{ opacity:0.9; }
+  .nav-token:active img{ transform: translateZ(0) scale(0.98); }
+  

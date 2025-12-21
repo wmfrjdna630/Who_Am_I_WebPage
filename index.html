@@ -46,6 +46,21 @@
           insta.<br>@reieij
         </a>
 
+        <!-- ✅ 좌측 하단 바로가기 토큰 (index / moon-room / sun-room 전용) -->
+<div class="nav-tokens" aria-label="quick navigation">
+  <button class="nav-token" type="button" id="MoonGo" aria-label="MoonGo">
+    <img src="./assets/MoonGo.png" alt="" draggable="false" />
+  </button>
+
+  <button class="nav-token" type="button" id="SunGo" aria-label="SunGo">
+    <img src="./assets/SunGo.png" alt="" draggable="false" />
+  </button>
+
+  <button class="nav-token" type="button" id="HomeGo" aria-label="HomeGo">
+    <img src="./assets/HomeGo.png" alt="" draggable="false" />
+  </button>
+</div>
+
       </div>
     </main>
   </div>
@@ -325,6 +340,23 @@
         applySunCard(SUN_START_LEFT);
       }
     });
+
+    // =========================
+// ✅ 좌측 하단 토큰 네비게이션 (index)
+// =========================
+document.getElementById("MoonGo")?.addEventListener("click", () => {
+  window.location.href = "./moon-room.html";
+});
+
+document.getElementById("SunGo")?.addEventListener("click", () => {
+  // ✅ sun-room.html은 나중에 만들 예정
+  // window.location.href = "./sun-room.html";
+});
+
+document.getElementById("HomeGo")?.addEventListener("click", () => {
+  // ✅ index에서 HomeGo는 "새로고침" 용도
+  window.location.reload();
+});
   </script>
 </body>
 </html>
