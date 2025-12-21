@@ -501,6 +501,52 @@
       bloom: { strength: 0.5, radius: 0.4, threshold: 0.75 }
     };
 
+    const DEFAULT_MOOD = {
+      waterEmissiveIntensity: MOOD.waterEmissiveIntensity,
+      lightIntensity: MOOD.lightIntensity,
+      lightDistance: MOOD.lightDistance,
+      lightDecay: MOOD.lightDecay,
+      bloom: { ...MOOD.bloom }
+    };
+
+    const BOTTLE_MOOD_OVERRIDES = {
+      bt1: {
+        waterEmissiveIntensity: 3.0,
+        lightIntensity: 1.6,
+        bloom: { strength: 0.85, threshold: 0.55 }
+      },
+      bt4: {
+        waterEmissiveIntensity: 3.0,
+        lightIntensity: 1.6,
+        bloom: { strength: 0.85, threshold: 0.55 }
+      },
+      BT8: {
+        waterEmissiveIntensity: 3.2,
+        lightIntensity: 1.7,
+        bloom: { strength: 0.9, threshold: 0.5 }
+      },
+      BT9: {
+        waterEmissiveIntensity: 3.2,
+        lightIntensity: 1.7,
+        bloom: { strength: 0.9, threshold: 0.5 }
+      }
+    };
+
+    function applyMoodOverridesForBottle(bottleName){
+      const override = BOTTLE_MOOD_OVERRIDES[bottleName] || {};
+
+      MOOD.waterEmissiveIntensity =
+        override.waterEmissiveIntensity ?? DEFAULT_MOOD.waterEmissiveIntensity;
+      MOOD.lightIntensity = override.lightIntensity ?? DEFAULT_MOOD.lightIntensity;
+      MOOD.lightDistance = override.lightDistance ?? DEFAULT_MOOD.lightDistance;
+      MOOD.lightDecay = override.lightDecay ?? DEFAULT_MOOD.lightDecay;
+
+      MOOD.bloom = {
+        ...DEFAULT_MOOD.bloom,
+        ...(override.bloom || {})
+      };
+    }
+
     function setMoodColor(hex){
       MOOD.colorHex = hex;
       applyMood();
@@ -544,6 +590,7 @@
     function applyBottleColorToCauldron(bottleName){
       const color = BOTTLE_COLORS[bottleName];
       if (color) {
+        applyMoodOverridesForBottle(bottleName);
         setMoodColor(color);
         showNamePopup(`가마솥 색상 변경: ${bottleName}`);
       }
