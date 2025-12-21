@@ -542,22 +542,35 @@
     };
 
     let selectedBottle = null;
-    let selectedBottleObject = null;
+
+    // ✅ [FIX] outline 상태를 hover/selected로 분리
+    let selectedObject = null;
+    let hoveredObject = null;
+
+    function updateOutline(){
+      const arr = [];
+      if (hoveredObject) arr.push(hoveredObject);
+      if (selectedObject && selectedObject !== hoveredObject) arr.push(selectedObject);
+      outlinePass.selectedObjects = arr;
+    }
 
     function selectBottle(bottleName){
-      if (BOTTLE_COLORS[bottleName]) {
-        selectedBottle = bottleName;
-        
-        // ✅ 선택된 bottle 오브젝트 찾기
-        const bottleObj = roomRoot?.getObjectByName(bottleName);
-        if (bottleObj) {
-          selectedBottleObject = bottleObj;
-          // ✅ 선택된 bottle을 outlinePass로 강조
-          outlinePass.selectedObjects = [bottleObj];
-        }
-        return;
-        
+      if (!BOTTLE_COLORS[bottleName]) return;
+
+      selectedBottle = bottleName;
+
+      // ✅ 선택된 bottle 오브젝트 찾기
+      const bottleObj = roomRoot?.getObjectByName(bottleName);
+      if (bottleObj) {
+        selectedObject = bottleObj;
+        updateOutline();
       }
+    }
+
+    function clearSelectedBottle(){
+      selectedBottle = null;
+      selectedObject = null;
+      updateOutline();
     }
 
     function applyBottleColorToCauldron(bottleName){
@@ -724,9 +737,6 @@
     }
 
     // =========================
-    // ✅ 디버그 팝업
-    // =========================
-    // =========================
     // ✅ BOOK POPUP (추가)
     // =========================
     const moonPopupOverlay = document.getElementById("moonPopupOverlay");
@@ -758,20 +768,6 @@
       moonPopupOverlay.setAttribute("aria-hidden", "false");
       el.classList.add("is-on");
 
-      // ✅ 이미지 로드 확인
-      const img = el.querySelector("img");
-      if (img) {
-        if (!img.complete || img.naturalWidth === 0) {
-          console.warn("[MoonRoom] Image not loaded:", img.src);
-          img.onerror = () => {
-            console.error("[MoonRoom] Image load failed:", img.src);
-          };
-          img.onload = () => {
-            console.log("[MoonRoom] Image loaded:", img.src);
-          };
-        }
-      }
-
       // ✅ 팝업 열리면 컨트롤/호버 꺼서 "잡히는 느낌" 방지
       controls.enabled = false;
       clearHover();
@@ -790,7 +786,7 @@
         resetSlider("moonPopup2");
         resetSlider("moonPopup3");
         resetSlider("moonPopup4");
-      }, 250); // transition 시간(220ms)보다 약간 길게
+      }, 250);
 
       controls.enabled = true;
       clearHover();
@@ -802,28 +798,6 @@
         e.stopPropagation();
         closeMoonPopup();
       });
-    });
-
-    // ✅ 이미지 로드 확인 (디버깅용)
-    window.addEventListener("load", () => {
-      for (const k in moonPopupEls){
-        const el = moonPopupEls[k];
-        if (!el) continue;
-        const img = el.querySelector("img");
-        if (img) {
-          if (img.complete && img.naturalWidth > 0) {
-            console.log(`[MoonRoom] ${k} image loaded:`, img.src, `${img.naturalWidth}x${img.naturalHeight}`);
-          } else {
-            console.warn(`[MoonRoom] ${k} image not loaded:`, img.src);
-            img.addEventListener("load", () => {
-              console.log(`[MoonRoom] ${k} image loaded after:`, img.src);
-            });
-            img.addEventListener("error", () => {
-              console.error(`[MoonRoom] ${k} image load error:`, img.src);
-            });
-          }
-        }
-      }
     });
 
     // ✅ 오버레이 배경 클릭 시 닫기(팝업 이미지 클릭은 유지)
@@ -841,14 +815,10 @@
     function updateSlider1(page){
       moonPopup1CurrentPage = Math.max(0, Math.min(page, moonPopup1TotalPages - 1));
       if (moonPopup1Slider) {
-        // ✅ 모든 슬라이드 숨기기
         const slides = moonPopup1Slider.querySelectorAll(".moon-popup-slide");
         slides.forEach((slide, index) => {
-          if (index === moonPopup1CurrentPage) {
-            slide.classList.add("is-active");
-          } else {
-            slide.classList.remove("is-active");
-          }
+          if (index === moonPopup1CurrentPage) slide.classList.add("is-active");
+          else slide.classList.remove("is-active");
         });
         moonPopup1Slider.setAttribute("data-page", moonPopup1CurrentPage);
       }
@@ -856,40 +826,28 @@
 
     function resetSlider(sliderId){
       if (sliderId === "moonPopup1") {
-        moonPopup1CurrentPage = 0;
-        updateSlider1(0);
+        moonPopup1CurrentPage = 0; updateSlider1(0);
       } else if (sliderId === "moonPopup2") {
-        moonPopup2CurrentPage = 0;
-        updateSlider2(0);
+        moonPopup2CurrentPage = 0; updateSlider2(0);
       } else if (sliderId === "moonPopup3") {
-        moonPopup3CurrentPage = 0;
-        updateSlider3(0);
+        moonPopup3CurrentPage = 0; updateSlider3(0);
       } else if (sliderId === "moonPopup4") {
-        moonPopup4CurrentPage = 0;
-        updateSlider4(0);
+        moonPopup4CurrentPage = 0; updateSlider4(0);
       }
     }
 
     function goToSliderPage(sliderId, direction){
       if (sliderId === "moonPopup1") {
-        const newPage = direction === "next" 
-          ? moonPopup1CurrentPage + 1 
-          : moonPopup1CurrentPage - 1;
+        const newPage = direction === "next" ? moonPopup1CurrentPage + 1 : moonPopup1CurrentPage - 1;
         updateSlider1(newPage);
       } else if (sliderId === "moonPopup2") {
-        const newPage = direction === "next" 
-          ? moonPopup2CurrentPage + 1 
-          : moonPopup2CurrentPage - 1;
+        const newPage = direction === "next" ? moonPopup2CurrentPage + 1 : moonPopup2CurrentPage - 1;
         updateSlider2(newPage);
       } else if (sliderId === "moonPopup3") {
-        const newPage = direction === "next" 
-          ? moonPopup3CurrentPage + 1 
-          : moonPopup3CurrentPage - 1;
+        const newPage = direction === "next" ? moonPopup3CurrentPage + 1 : moonPopup3CurrentPage - 1;
         updateSlider3(newPage);
       } else if (sliderId === "moonPopup4") {
-        const newPage = direction === "next" 
-          ? moonPopup4CurrentPage + 1 
-          : moonPopup4CurrentPage - 1;
+        const newPage = direction === "next" ? moonPopup4CurrentPage + 1 : moonPopup4CurrentPage - 1;
         updateSlider4(newPage);
       }
     }
@@ -914,14 +872,10 @@
     function updateSlider2(page){
       moonPopup2CurrentPage = Math.max(0, Math.min(page, moonPopup2TotalPages - 1));
       if (moonPopup2Slider) {
-        // ✅ 모든 슬라이드 숨기기
         const slides = moonPopup2Slider.querySelectorAll(".moon-popup-slide");
         slides.forEach((slide, index) => {
-          if (index === moonPopup2CurrentPage) {
-            slide.classList.add("is-active");
-          } else {
-            slide.classList.remove("is-active");
-          }
+          if (index === moonPopup2CurrentPage) slide.classList.add("is-active");
+          else slide.classList.remove("is-active");
         });
         moonPopup2Slider.setAttribute("data-page", moonPopup2CurrentPage);
       }
@@ -937,14 +891,10 @@
     function updateSlider3(page){
       moonPopup3CurrentPage = Math.max(0, Math.min(page, moonPopup3TotalPages - 1));
       if (moonPopup3Slider) {
-        // ✅ 모든 슬라이드 숨기기
         const slides = moonPopup3Slider.querySelectorAll(".moon-popup-slide");
         slides.forEach((slide, index) => {
-          if (index === moonPopup3CurrentPage) {
-            slide.classList.add("is-active");
-          } else {
-            slide.classList.remove("is-active");
-          }
+          if (index === moonPopup3CurrentPage) slide.classList.add("is-active");
+          else slide.classList.remove("is-active");
         });
         moonPopup3Slider.setAttribute("data-page", moonPopup3CurrentPage);
       }
@@ -960,55 +910,20 @@
     function updateSlider4(page){
       moonPopup4CurrentPage = Math.max(0, Math.min(page, moonPopup4TotalPages - 1));
       if (moonPopup4Slider) {
-        // ✅ 모든 슬라이드 숨기기
         const slides = moonPopup4Slider.querySelectorAll(".moon-popup-slide");
         slides.forEach((slide, index) => {
-          if (index === moonPopup4CurrentPage) {
-            slide.classList.add("is-active");
-          } else {
-            slide.classList.remove("is-active");
-          }
+          if (index === moonPopup4CurrentPage) slide.classList.add("is-active");
+          else slide.classList.remove("is-active");
         });
         moonPopup4Slider.setAttribute("data-page", moonPopup4CurrentPage);
       }
     }
 
     // ✅ 슬라이더 초기화
-    if (moonPopup1Slider) {
-      // 첫 번째 슬라이드 활성화
-      const firstSlide = moonPopup1Slider.querySelector(".moon-popup-slide");
-      if (firstSlide) {
-        firstSlide.classList.add("is-active");
-      }
-      updateSlider1(0);
-    }
-
-    if (moonPopup2Slider) {
-      // 첫 번째 슬라이드 활성화
-      const firstSlide = moonPopup2Slider.querySelector(".moon-popup-slide");
-      if (firstSlide) {
-        firstSlide.classList.add("is-active");
-      }
-      updateSlider2(0);
-    }
-
-    if (moonPopup3Slider) {
-      // 첫 번째 슬라이드 활성화
-      const firstSlide = moonPopup3Slider.querySelector(".moon-popup-slide");
-      if (firstSlide) {
-        firstSlide.classList.add("is-active");
-      }
-      updateSlider3(0);
-    }
-
-    if (moonPopup4Slider) {
-      // 첫 번째 슬라이드 활성화
-      const firstSlide = moonPopup4Slider.querySelector(".moon-popup-slide");
-      if (firstSlide) {
-        firstSlide.classList.add("is-active");
-      }
-      updateSlider4(0);
-    }
+    if (moonPopup1Slider) updateSlider1(0);
+    if (moonPopup2Slider) updateSlider2(0);
+    if (moonPopup3Slider) updateSlider3(0);
+    if (moonPopup4Slider) updateSlider4(0);
 
     // =========================
     // ✅ Raycaster: 클릭 + Hover(외곽선) (캐싱+스로틀)
@@ -1092,15 +1007,11 @@
           if (selectedBottle) {
             applyBottleColorToCauldron(selectedBottle);
             // ✅ 가마솥 클릭 후 bottle 선택 해제 (선택사항)
-            selectedBottle = null;
-            selectedBottleObject = null;
-            outlinePass.selectedObjects = [];
-          } else {
+            clearSelectedBottle();
           }
           return;
         }
 
-        // ✅ 나머지는 기존대로 이름 팝업
         return;
       }
     }
@@ -1111,18 +1022,14 @@
 
     function clearHover(){
       hovered = null;
-      // ✅ 선택된 bottle이 있으면 유지
-      if (selectedBottleObject) {
-        outlinePass.selectedObjects = [selectedBottleObject];
-      } else {
-        outlinePass.selectedObjects = [];
-      }
+      hoveredObject = null;
+      updateOutline();
       renderer.domElement.style.cursor = "default";
     }
 
     // ✅ pointermove 스로틀 최적화 (더 빠른 반응)
     let lastHoverCheck = 0;
-    const HOVER_INTERVAL_MS = 16; // 33ms -> 16ms (60fps로 증가)
+    const HOVER_INTERVAL_MS = 16;
 
     function onPointerMove(e){
       // ✅ 팝업 열려있으면 hover도 막기
@@ -1137,7 +1044,6 @@
       if (!setRayFromEvent(e)) { clearHover(); return; }
       if (!interactRoots.length) { clearHover(); return; }
 
-      // ✅ raycaster 최적화: 더 정확한 감지
       raycaster.params.Points = { threshold: 0.1 };
       raycaster.params.Line = { threshold: 0.1 };
       
@@ -1148,13 +1054,9 @@
       }
 
       let found = null;
-      // ✅ 가장 가까운 hit부터 확인 (더 정확)
       for (const hit of hits){
         const root = findInteractiveRoot(hit.object);
-        if (root) { 
-          found = root; 
-          break; 
-        }
+        if (root) { found = root; break; }
       }
 
       if (!found) { 
@@ -1162,23 +1064,34 @@
         return; 
       }
 
-      // ✅ 같은 오브젝트면 업데이트 안 함 (성능 최적화)
       if (hovered === found) return;
 
       hovered = found;
-      
-      // ✅ 선택된 bottle이 있으면 hover와 함께 표시
-      if (selectedBottleObject) {
-        outlinePass.selectedObjects = [hovered, selectedBottleObject];
-      } else {
-        outlinePass.selectedObjects = [hovered];
-      }
-      
+      hoveredObject = found;
+      updateOutline();
       renderer.domElement.style.cursor = "pointer";
     }
 
     renderer.domElement.addEventListener("pointermove", onPointerMove);
     renderer.domElement.addEventListener("pointerleave", clearHover);
+
+    // =========================
+    // ✅ [FIX] bottle material 완전 분리 (사라짐 현상 방지)
+    // =========================
+    function cloneMaterialsForObject(root, nameSet){
+      root.traverse((o) => {
+        if (!o.isMesh) return;
+        if (!nameSet.has(o.name)) return;
+
+        const m = o.material;
+        if (!m) return;
+
+        if (Array.isArray(m)) o.material = m.map(mat => mat.clone());
+        else o.material = m.clone();
+
+        o.material.needsUpdate = true;
+      });
+    }
 
     // =========================
     // ✅ 로드 시작/완료 처리
@@ -1204,6 +1117,12 @@
             mat.needsUpdate = true;
           }
         });
+
+        // ✅ [FIX] bottle material 완전 분리 (OutlinePass/공유재질 꼬임 방지)
+        cloneMaterialsForObject(roomRoot, new Set([
+          "bt1","bt2","bt3","bt4",
+          "BT5","BT6","BT7","BT8","BT9","BT10"
+        ]));
 
         // ✅ 인터랙티브 대상만 캐싱 (성능 핵심)
         interactRoots = [];
@@ -1258,15 +1177,13 @@
     const starCanvas = document.getElementById("starTrail");
     const starCtx = starCanvas?.getContext("2d", { alpha: true });
 
-    /* 성능/감성 튜닝값 (shadowBlur 제거로 파티클 수 증가 가능) */
-    const STAR_MAX = 120;  // shadowBlur 없이 더 많은 파티클 가능
-    const STAR_SPAWN_RATE = 3;  // 원래대로 복구
+    const STAR_MAX = 120;
+    const STAR_SPAWN_RATE = 3;
     const STAR_LIFE_MIN = 420;
     const STAR_LIFE_MAX = 900;
     const STAR_SPEED_MIN = 0.35;
     const STAR_SPEED_MAX = 1.45;
 
-    /* 은하수 컬러 팔레트(은은한 푸/보 + 화이트) */
     const STAR_COLORS = [
       "rgba(221,241,255,0.98)",
       "rgba(221,241,255,0.92)",
@@ -1327,7 +1244,6 @@
           t: 0,
           life,
           size: rand(0.7, 2.0),
-          // glow 제거 (shadowBlur 사용 안 함)
           color: pick(STAR_COLORS),
           twist: rand(-0.03, 0.03)
         });
@@ -1338,9 +1254,6 @@
       starCtx.save();
       starCtx.globalCompositeOperation = "lighter";
       starCtx.globalAlpha = alpha;
-
-      // ✅ shadowBlur 제거 (성능 최적화 - 가장 무거운 부분)
-      // shadowBlur는 각 파티클마다 렌더링 비용이 매우 큼
 
       starCtx.strokeStyle = p.color;
       starCtx.lineWidth = Math.max(0.6, p.size);
@@ -1361,7 +1274,6 @@
     function tickStars(now){
       if (!starCtx) return;
       
-      // ✅ 팝업이 열려있으면 별가루 비활성화 (성능 최적화)
       if (popupOpen) {
         requestAnimationFrame(tickStars);
         return;
@@ -1403,7 +1315,6 @@
 
     if (starCanvas && starCtx){
       window.addEventListener("mousemove", (e) => {
-        // ✅ 팝업이 열려있으면 별가루 생성 안 함 (성능 최적화)
         if (popupOpen) return;
         
         const pos = getLocalPosFromEvent(e);
