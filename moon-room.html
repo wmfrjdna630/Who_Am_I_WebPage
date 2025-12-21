@@ -37,6 +37,24 @@
     }
     .moonroom-fade.is-off{ opacity:0; }
 
+    /* =========================
+       ✅ 별가루 트레일 스타일
+       ========================= */
+    .star-trail{
+      position:absolute;
+      inset:0;
+      width:1440px;
+      height:1024px;
+      pointer-events:none;
+      z-index:3; /* WebGL 위에 표시 */
+      opacity:1;
+      transition: opacity 500ms ease;
+      filter: blur(0.2px);
+    }
+    .star-trail.is-off{
+      opacity:0;
+    }
+
     .name-popup{
       position:absolute;
       left:50%;
@@ -102,6 +120,183 @@
 
     .nav-token:hover img{ opacity:0.9; }
     .nav-token:active img{ transform: translateZ(0) scale(0.98); }
+
+    /* =========================
+       ✅ BOOK POPUP (추가)
+       - canvas(1440x1024) 위에 뜨는 DOM 팝업
+       ========================= */
+    .moon-popup-overlay{
+      position:absolute;
+      left:0; top:0;
+      width:1440px;
+      height:1024px;
+
+      background: rgba(0,0,0,0.62);
+      opacity:0;
+      pointer-events:none;
+      transition: opacity 220ms ease;
+
+      z-index:10000; /* namePopup(9999)보다 위 */
+    }
+    .moon-popup-overlay.is-on{
+      opacity:1;
+      pointer-events:auto;
+    }
+
+    .moon-popup{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform: translate(-50%, -50%) scale(0.985);
+      transform-origin:center center;
+      opacity:0;
+      pointer-events:none;
+      transition: opacity 220ms ease, transform 220ms ease;
+      z-index:10001; /* overlay(10000)보다 위 */
+    }
+    .moon-popup.is-on{
+      opacity:1;
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events:auto;
+    }
+
+    /* ✅ 팝업이 닫혀있을 때 모든 자식 요소도 클릭 막기 */
+    .moon-popup:not(.is-on) * {
+      pointer-events:none !important;
+    }
+
+    .moon-popup > img{
+      display:block;
+      user-select:none;
+      -webkit-user-drag:none;
+      max-width: 90vw;
+      max-height: 90vh;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      min-width: 200px;
+      min-height: 200px;
+    }
+
+    .moon-popup-close{
+      position:absolute;
+      top:22px;     /* ✅ 우상단 X 위치(필요하면 조정) */
+      right:22px;
+      width:44px;
+      height:44px;
+      padding:0;
+      border:0;
+      background:transparent;
+      cursor:pointer;
+      line-height:0;
+      z-index:10002; /* ✅ 슬라이더 위에 표시 */
+    }
+    .moon-popup-close img{
+      display:block;
+      width:44px;
+      height:44px;
+      user-select:none;
+      -webkit-user-drag:none;
+    }
+    .moon-popup-close:hover{ opacity:0.9; }
+    .moon-popup-close:active{ transform: scale(0.98); }
+
+    /* =========================
+       ✅ 슬라이더 스타일 (딱딱 나오는 형식)
+       ========================= */
+    .moon-popup-bg{
+      position:relative;
+      z-index:1;
+    }
+
+    .moon-popup-slider{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform: translate(-50%, -50%);
+      /* ✅ moon_popup1의 검은색 부분에 맞추기 - 필요시 조정 */
+      width:92%;
+      height:92%;
+      z-index:2;
+      pointer-events:none;
+      overflow:hidden;
+    }
+
+    .moon-popup-slider-track{
+      position:absolute;
+      left:0;
+      top:0;
+      width:100%;
+      height:100%;
+    }
+
+    .moon-popup-slide{
+      position:absolute;
+      left:0;
+      top:0;
+      width:100%;
+      height:100%;
+      object-fit: contain;
+      object-position: center;
+      user-select:none;
+      -webkit-user-drag:none;
+      pointer-events:auto;
+      opacity:0;
+      transition: opacity 0ms; /* 딱딱 나오도록 transition 제거 */
+    }
+    .moon-popup-slide.is-active{
+      opacity:1;
+    }
+
+    /* ✅ 화살표 버튼 */
+    .moon-popup-arrow{
+      position:absolute;
+      top:50%;
+      transform: translateY(-50%);
+      width:48px;
+      height:48px;
+      padding:0;
+      border:0;
+      background:transparent;
+      cursor:pointer;
+      line-height:0;
+      z-index:10003; /* ✅ X버튼보다 위에 */
+      opacity:0.85;
+      transition: opacity 200ms ease;
+      pointer-events:auto;
+    }
+    .moon-popup-arrow:hover{ opacity:1; }
+    .moon-popup-arrow:active{ transform: translateY(-50%) scale(0.95); }
+
+    .moon-popup-arrow-left{
+      left:100px;
+    }
+    .moon-popup-arrow-right{
+      right:100px;
+    }
+
+    .moon-popup-arrow img{
+      display:block;
+      width:100%;
+      height:100%;
+      object-fit: contain; /* ✅ 찌그러짐 방지 */
+      user-select:none;
+      -webkit-user-drag:none;
+    }
+
+    /* ✅ 첫 페이지/마지막 페이지에서 화살표 숨기기 (선택사항) */
+    .moon-popup-slider[data-page="0"] .moon-popup-arrow-left{
+      opacity:0.3;
+      pointer-events:none;
+    }
+    /* 마지막 페이지 (book1, book4: 4번, book2, book3: 5번) */
+    #moonPopup1Slider[data-page="4"] .moon-popup-arrow-right,
+    #moonPopup4Slider[data-page="4"] .moon-popup-arrow-right,
+    #moonPopup2Slider[data-page="5"] .moon-popup-arrow-right,
+    #moonPopup3Slider[data-page="5"] .moon-popup-arrow-right{
+      opacity:0.3;
+      pointer-events:none;
+    }
   </style>
 </head>
 
@@ -110,6 +305,9 @@
     <main class="frame" id="frameMoonRoom">
       <div class="canvas" id="canvasMoonRoom" style="background:#000;">
         <div id="webglHost" class="moonroom-webgl" aria-hidden="true"></div>
+        
+        <!-- ✅ 별가루 트레일 캔버스 -->
+        <canvas class="star-trail" id="starTrail" width="1440" height="1024" aria-hidden="true"></canvas>
 
         <!-- ✅ 좌상단 토큰 -->
         <div class="nav-tokens" aria-label="quick navigation">
@@ -124,6 +322,122 @@
           <button class="nav-token" type="button" id="HomeGo" aria-label="HomeGo">
             <img src="./assets/HomeGo.png" alt="" draggable="false" />
           </button>
+        </div>
+
+        <!-- =========================
+             ✅ BOOK POPUP DOM (추가)
+             - assets 경로는 주식쌉고수님 프로젝트 기준으로 맞춰놨어요
+             ========================= -->
+        <div class="moon-popup-overlay" id="moonPopupOverlay" aria-hidden="true">
+          <div class="moon-popup" id="moonPopup1" aria-label="moon popup 1">
+            <img class="moon-popup-bg" src="./assets/moon_popup1.png" alt="" draggable="false" />
+            
+            <!-- ✅ 슬라이더 컨테이너 -->
+            <div class="moon-popup-slider" id="moonPopup1Slider">
+              <div class="moon-popup-slider-track">
+                <img class="moon-popup-slide" src="./assets/moon_popup1-1.png" alt="" draggable="false" />
+                <img class="moon-popup-slide" src="./assets/moon_popup1-2.png" alt="" draggable="false" />
+                <img class="moon-popup-slide" src="./assets/moon_popup1-3.png" alt="" draggable="false" />
+                <img class="moon-popup-slide" src="./assets/moon_popup1-4.png" alt="" draggable="false" />
+                <img class="moon-popup-slide" src="./assets/moon_popup1-5.png" alt="" draggable="false" />
+              </div>
+            </div>
+
+            <!-- ✅ 화살표 버튼 -->
+            <button class="moon-popup-arrow moon-popup-arrow-left" type="button" data-slider="moonPopup1" data-direction="prev" aria-label="이전 페이지">
+              <img src="./assets/left_arrow.png" alt="" draggable="false" />
+            </button>
+            <button class="moon-popup-arrow moon-popup-arrow-right" type="button" data-slider="moonPopup1" data-direction="next" aria-label="다음 페이지">
+              <img src="./assets/right_arrow.png" alt="" draggable="false" />
+            </button>
+
+            <button class="moon-popup-close" type="button" data-popup-close aria-label="close popup">
+              <img src="./assets/X.png" alt="" draggable="false" />
+            </button>
+          </div>
+
+          <div class="moon-popup" id="moonPopup2" aria-label="moon popup 2">
+            <img class="moon-popup-bg" src="./assets/moon_popup2.png" alt="" draggable="false" />
+            
+            <!-- ✅ 슬라이더 컨테이너 -->
+            <div class="moon-popup-slider" id="moonPopup2Slider">
+              <div class="moon-popup-slider-track">
+                <img class="moon-popup-slide" src="./assets/moon_popup2-1.png" alt="" draggable="false" />
+                <img class="moon-popup-slide" src="./assets/moon_popup2-2.png" alt="" draggable="false" />
+                <img class="moon-popup-slide" src="./assets/moon_popup2-3.png" alt="" draggable="false" />
+                <img class="moon-popup-slide" src="./assets/moon_popup2-4.png" alt="" draggable="false" />
+                <img class="moon-popup-slide" src="./assets/moon_popup2-5.png" alt="" draggable="false" />
+                <img class="moon-popup-slide" src="./assets/moon_popup2-6.png" alt="" draggable="false" />
+              </div>
+            </div>
+
+            <!-- ✅ 화살표 버튼 -->
+            <button class="moon-popup-arrow moon-popup-arrow-left" type="button" data-slider="moonPopup2" data-direction="prev" aria-label="이전 페이지">
+              <img src="./assets/left_arrow.png" alt="" draggable="false" />
+            </button>
+            <button class="moon-popup-arrow moon-popup-arrow-right" type="button" data-slider="moonPopup2" data-direction="next" aria-label="다음 페이지">
+              <img src="./assets/right_arrow.png" alt="" draggable="false" />
+            </button>
+
+            <button class="moon-popup-close" type="button" data-popup-close aria-label="close popup">
+              <img src="./assets/X.png" alt="" draggable="false" />
+            </button>
+          </div>
+
+          <div class="moon-popup" id="moonPopup3" aria-label="moon popup 3">
+            <img class="moon-popup-bg" src="./assets/moon_popup3.png" alt="" draggable="false" />
+            
+            <!-- ✅ 슬라이더 컨테이너 -->
+            <div class="moon-popup-slider" id="moonPopup3Slider">
+              <div class="moon-popup-slider-track">
+                <img class="moon-popup-slide" src="./assets/moon_popup3-1.png" alt="" draggable="false" />
+                <img class="moon-popup-slide" src="./assets/moon_popup3-2.png" alt="" draggable="false" />
+                <img class="moon-popup-slide" src="./assets/moon_popup3-3.png" alt="" draggable="false" />
+                <img class="moon-popup-slide" src="./assets/moon_popup3-4.png" alt="" draggable="false" />
+                <img class="moon-popup-slide" src="./assets/moon_popup3-5.png" alt="" draggable="false" />
+                <img class="moon-popup-slide" src="./assets/moon_popup3-6.png" alt="" draggable="false" />
+              </div>
+            </div>
+
+            <!-- ✅ 화살표 버튼 -->
+            <button class="moon-popup-arrow moon-popup-arrow-left" type="button" data-slider="moonPopup3" data-direction="prev" aria-label="이전 페이지">
+              <img src="./assets/left_arrow.png" alt="" draggable="false" />
+            </button>
+            <button class="moon-popup-arrow moon-popup-arrow-right" type="button" data-slider="moonPopup3" data-direction="next" aria-label="다음 페이지">
+              <img src="./assets/right_arrow.png" alt="" draggable="false" />
+            </button>
+
+            <button class="moon-popup-close" type="button" data-popup-close aria-label="close popup">
+              <img src="./assets/X.png" alt="" draggable="false" />
+            </button>
+          </div>
+
+          <div class="moon-popup" id="moonPopup4" aria-label="moon popup 4">
+            <img class="moon-popup-bg" src="./assets/moon_popup4.png" alt="" draggable="false" />
+            
+            <!-- ✅ 슬라이더 컨테이너 -->
+            <div class="moon-popup-slider" id="moonPopup4Slider">
+              <div class="moon-popup-slider-track">
+                <img class="moon-popup-slide" src="./assets/moon_popup4-1.png" alt="" draggable="false" />
+                <img class="moon-popup-slide" src="./assets/moon_popup4-2.png" alt="" draggable="false" />
+                <img class="moon-popup-slide" src="./assets/moon_popup4-3.png" alt="" draggable="false" />
+                <img class="moon-popup-slide" src="./assets/moon_popup4-4.png" alt="" draggable="false" />
+                <img class="moon-popup-slide" src="./assets/moon_popup4-5.png" alt="" draggable="false" />
+              </div>
+            </div>
+
+            <!-- ✅ 화살표 버튼 -->
+            <button class="moon-popup-arrow moon-popup-arrow-left" type="button" data-slider="moonPopup4" data-direction="prev" aria-label="이전 페이지">
+              <img src="./assets/left_arrow.png" alt="" draggable="false" />
+            </button>
+            <button class="moon-popup-arrow moon-popup-arrow-right" type="button" data-slider="moonPopup4" data-direction="next" aria-label="다음 페이지">
+              <img src="./assets/right_arrow.png" alt="" draggable="false" />
+            </button>
+
+            <button class="moon-popup-close" type="button" data-popup-close aria-label="close popup">
+              <img src="./assets/X.png" alt="" draggable="false" />
+            </button>
+          </div>
         </div>
 
         <div class="name-popup" id="namePopup" aria-live="polite"></div>
@@ -361,6 +675,290 @@
     }
 
     // =========================
+    // ✅ BOOK POPUP (추가)
+    // =========================
+    const moonPopupOverlay = document.getElementById("moonPopupOverlay");
+    const moonPopupEls = {
+      book1: document.getElementById("moonPopup1"),
+      book2: document.getElementById("moonPopup2"),
+      book3: document.getElementById("moonPopup3"),
+      book4: document.getElementById("moonPopup4"),
+    };
+    let popupOpen = false;
+
+    function closeAllMoonPopups(){
+      for (const k in moonPopupEls){
+        moonPopupEls[k]?.classList.remove("is-on");
+      }
+    }
+
+    function openMoonPopupFor(bookName){
+      const el = moonPopupEls[bookName];
+      if (!el) {
+        console.warn("[MoonRoom] Popup element not found for:", bookName);
+        return;
+      }
+
+      popupOpen = true;
+      closeAllMoonPopups();
+
+      moonPopupOverlay.classList.add("is-on");
+      moonPopupOverlay.setAttribute("aria-hidden", "false");
+      el.classList.add("is-on");
+
+      // ✅ 이미지 로드 확인
+      const img = el.querySelector("img");
+      if (img) {
+        if (!img.complete || img.naturalWidth === 0) {
+          console.warn("[MoonRoom] Image not loaded:", img.src);
+          img.onerror = () => {
+            console.error("[MoonRoom] Image load failed:", img.src);
+          };
+          img.onload = () => {
+            console.log("[MoonRoom] Image loaded:", img.src);
+          };
+        }
+      }
+
+      // ✅ 팝업 열리면 컨트롤/호버 꺼서 "잡히는 느낌" 방지
+      controls.enabled = false;
+      clearHover();
+    }
+
+    function closeMoonPopup(){
+      popupOpen = false;
+      closeAllMoonPopups();
+
+      moonPopupOverlay.classList.remove("is-on");
+      moonPopupOverlay.setAttribute("aria-hidden", "true");
+
+      // ✅ 팝업 닫히는 애니메이션(220ms) 완료 후 슬라이더 리셋
+      setTimeout(() => {
+        resetSlider("moonPopup1");
+        resetSlider("moonPopup2");
+        resetSlider("moonPopup3");
+        resetSlider("moonPopup4");
+      }, 250); // transition 시간(220ms)보다 약간 길게
+
+      controls.enabled = true;
+      clearHover();
+    }
+
+    // ✅ X 버튼들
+    document.querySelectorAll("[data-popup-close]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        closeMoonPopup();
+      });
+    });
+
+    // ✅ 이미지 로드 확인 (디버깅용)
+    window.addEventListener("load", () => {
+      for (const k in moonPopupEls){
+        const el = moonPopupEls[k];
+        if (!el) continue;
+        const img = el.querySelector("img");
+        if (img) {
+          if (img.complete && img.naturalWidth > 0) {
+            console.log(`[MoonRoom] ${k} image loaded:`, img.src, `${img.naturalWidth}x${img.naturalHeight}`);
+          } else {
+            console.warn(`[MoonRoom] ${k} image not loaded:`, img.src);
+            img.addEventListener("load", () => {
+              console.log(`[MoonRoom] ${k} image loaded after:`, img.src);
+            });
+            img.addEventListener("error", () => {
+              console.error(`[MoonRoom] ${k} image load error:`, img.src);
+            });
+          }
+        }
+      }
+    });
+
+    // ✅ 오버레이 배경 클릭 시 닫기(팝업 이미지 클릭은 유지)
+    moonPopupOverlay.addEventListener("click", (e) => {
+      if (e.target === moonPopupOverlay) closeMoonPopup();
+    });
+
+    // =========================
+    // ✅ 슬라이더 기능 (moon_popup1)
+    // =========================
+    const moonPopup1Slider = document.getElementById("moonPopup1Slider");
+    let moonPopup1CurrentPage = 0;
+    const moonPopup1TotalPages = 5;
+
+    function updateSlider1(page){
+      moonPopup1CurrentPage = Math.max(0, Math.min(page, moonPopup1TotalPages - 1));
+      if (moonPopup1Slider) {
+        // ✅ 모든 슬라이드 숨기기
+        const slides = moonPopup1Slider.querySelectorAll(".moon-popup-slide");
+        slides.forEach((slide, index) => {
+          if (index === moonPopup1CurrentPage) {
+            slide.classList.add("is-active");
+          } else {
+            slide.classList.remove("is-active");
+          }
+        });
+        moonPopup1Slider.setAttribute("data-page", moonPopup1CurrentPage);
+      }
+    }
+
+    function resetSlider(sliderId){
+      if (sliderId === "moonPopup1") {
+        moonPopup1CurrentPage = 0;
+        updateSlider1(0);
+      } else if (sliderId === "moonPopup2") {
+        moonPopup2CurrentPage = 0;
+        updateSlider2(0);
+      } else if (sliderId === "moonPopup3") {
+        moonPopup3CurrentPage = 0;
+        updateSlider3(0);
+      } else if (sliderId === "moonPopup4") {
+        moonPopup4CurrentPage = 0;
+        updateSlider4(0);
+      }
+    }
+
+    function goToSliderPage(sliderId, direction){
+      if (sliderId === "moonPopup1") {
+        const newPage = direction === "next" 
+          ? moonPopup1CurrentPage + 1 
+          : moonPopup1CurrentPage - 1;
+        updateSlider1(newPage);
+      } else if (sliderId === "moonPopup2") {
+        const newPage = direction === "next" 
+          ? moonPopup2CurrentPage + 1 
+          : moonPopup2CurrentPage - 1;
+        updateSlider2(newPage);
+      } else if (sliderId === "moonPopup3") {
+        const newPage = direction === "next" 
+          ? moonPopup3CurrentPage + 1 
+          : moonPopup3CurrentPage - 1;
+        updateSlider3(newPage);
+      } else if (sliderId === "moonPopup4") {
+        const newPage = direction === "next" 
+          ? moonPopup4CurrentPage + 1 
+          : moonPopup4CurrentPage - 1;
+        updateSlider4(newPage);
+      }
+    }
+
+    // ✅ 화살표 버튼 이벤트
+    document.querySelectorAll("[data-slider]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const sliderId = btn.dataset.slider;
+        const direction = btn.dataset.direction;
+        goToSliderPage(sliderId, direction);
+      });
+    });
+
+    // =========================
+    // ✅ 슬라이더 기능 (moon_popup2)
+    // =========================
+    const moonPopup2Slider = document.getElementById("moonPopup2Slider");
+    let moonPopup2CurrentPage = 0;
+    const moonPopup2TotalPages = 6;
+
+    function updateSlider2(page){
+      moonPopup2CurrentPage = Math.max(0, Math.min(page, moonPopup2TotalPages - 1));
+      if (moonPopup2Slider) {
+        // ✅ 모든 슬라이드 숨기기
+        const slides = moonPopup2Slider.querySelectorAll(".moon-popup-slide");
+        slides.forEach((slide, index) => {
+          if (index === moonPopup2CurrentPage) {
+            slide.classList.add("is-active");
+          } else {
+            slide.classList.remove("is-active");
+          }
+        });
+        moonPopup2Slider.setAttribute("data-page", moonPopup2CurrentPage);
+      }
+    }
+
+    // =========================
+    // ✅ 슬라이더 기능 (moon_popup3)
+    // =========================
+    const moonPopup3Slider = document.getElementById("moonPopup3Slider");
+    let moonPopup3CurrentPage = 0;
+    const moonPopup3TotalPages = 6;
+
+    function updateSlider3(page){
+      moonPopup3CurrentPage = Math.max(0, Math.min(page, moonPopup3TotalPages - 1));
+      if (moonPopup3Slider) {
+        // ✅ 모든 슬라이드 숨기기
+        const slides = moonPopup3Slider.querySelectorAll(".moon-popup-slide");
+        slides.forEach((slide, index) => {
+          if (index === moonPopup3CurrentPage) {
+            slide.classList.add("is-active");
+          } else {
+            slide.classList.remove("is-active");
+          }
+        });
+        moonPopup3Slider.setAttribute("data-page", moonPopup3CurrentPage);
+      }
+    }
+
+    // =========================
+    // ✅ 슬라이더 기능 (moon_popup4)
+    // =========================
+    const moonPopup4Slider = document.getElementById("moonPopup4Slider");
+    let moonPopup4CurrentPage = 0;
+    const moonPopup4TotalPages = 5;
+
+    function updateSlider4(page){
+      moonPopup4CurrentPage = Math.max(0, Math.min(page, moonPopup4TotalPages - 1));
+      if (moonPopup4Slider) {
+        // ✅ 모든 슬라이드 숨기기
+        const slides = moonPopup4Slider.querySelectorAll(".moon-popup-slide");
+        slides.forEach((slide, index) => {
+          if (index === moonPopup4CurrentPage) {
+            slide.classList.add("is-active");
+          } else {
+            slide.classList.remove("is-active");
+          }
+        });
+        moonPopup4Slider.setAttribute("data-page", moonPopup4CurrentPage);
+      }
+    }
+
+    // ✅ 슬라이더 초기화
+    if (moonPopup1Slider) {
+      // 첫 번째 슬라이드 활성화
+      const firstSlide = moonPopup1Slider.querySelector(".moon-popup-slide");
+      if (firstSlide) {
+        firstSlide.classList.add("is-active");
+      }
+      updateSlider1(0);
+    }
+
+    if (moonPopup2Slider) {
+      // 첫 번째 슬라이드 활성화
+      const firstSlide = moonPopup2Slider.querySelector(".moon-popup-slide");
+      if (firstSlide) {
+        firstSlide.classList.add("is-active");
+      }
+      updateSlider2(0);
+    }
+
+    if (moonPopup3Slider) {
+      // 첫 번째 슬라이드 활성화
+      const firstSlide = moonPopup3Slider.querySelector(".moon-popup-slide");
+      if (firstSlide) {
+        firstSlide.classList.add("is-active");
+      }
+      updateSlider3(0);
+    }
+
+    if (moonPopup4Slider) {
+      // 첫 번째 슬라이드 활성화
+      const firstSlide = moonPopup4Slider.querySelector(".moon-popup-slide");
+      if (firstSlide) {
+        firstSlide.classList.add("is-active");
+      }
+      updateSlider4(0);
+    }
+
+    // =========================
     // ✅ Raycaster: 클릭 + Hover(외곽선) (캐싱+스로틀)
     // =========================
     const raycaster = new THREE.Raycaster();
@@ -411,6 +1009,9 @@
     }
 
     function onClick(e){
+      // ✅ 팝업 열려있으면 3D 클릭 막기
+      if (popupOpen) return;
+
       if (!roomRoot) return;
       if (!setRayFromEvent(e)) return;
       if (!interactRoots.length) return;
@@ -420,10 +1021,17 @@
 
       for (const hit of hits){
         const name = findInteractiveName(hit.object);
-        if (name){
-          showNamePopup(name);
+        if (!name) continue;
+
+        // ✅ book1~book4는 팝업으로 처리
+        if (name === "book1" || name === "book2" || name === "book3" || name === "book4") {
+          openMoonPopupFor(name);
           return;
         }
+
+        // ✅ 나머지는 기존대로 이름 팝업
+        showNamePopup(name);
+        return;
       }
     }
     renderer.domElement.addEventListener("click", onClick);
@@ -442,6 +1050,9 @@
     const HOVER_INTERVAL_MS = 33;
 
     function onPointerMove(e){
+      // ✅ 팝업 열려있으면 hover도 막기
+      if (popupOpen) { clearHover(); return; }
+
       if (!roomRoot) return;
 
       const now = performance.now();
@@ -537,6 +1148,180 @@
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
+
+    // =========================
+    // ✅ 별가루 트레일 효과 (friends.html과 동일)
+    // =========================
+    const starCanvas = document.getElementById("starTrail");
+    const starCtx = starCanvas?.getContext("2d", { alpha: true });
+
+    /* 성능/감성 튜닝값 */
+    const STAR_MAX = 140;
+    const STAR_SPAWN_RATE = 3;
+    const STAR_LIFE_MIN = 420;
+    const STAR_LIFE_MAX = 900;
+    const STAR_SPEED_MIN = 0.35;
+    const STAR_SPEED_MAX = 1.45;
+
+    /* 은하수 컬러 팔레트(은은한 푸/보 + 화이트) */
+    const STAR_COLORS = [
+      "rgba(221,241,255,0.98)",
+      "rgba(221,241,255,0.92)",
+      "rgba(221,241,255,0.85)"
+    ];
+
+    let starParticles = [];
+    let starRunning = true;
+    let lastMouse = null;
+
+    function getScaleMoonRoom(){
+      const rect = frame.getBoundingClientRect();
+      return rect.width / BASE_W;
+    }
+
+    function getLocalPosFromEvent(e){
+      const rect = frame.getBoundingClientRect();
+      const s = getScaleMoonRoom();
+
+      const cx = (e.clientX - rect.left) / s;
+      const cy = (e.clientY - rect.top) / s;
+
+      if (cx < 0 || cy < 0 || cx > BASE_W || cy > BASE_H) return null;
+      return { x: cx, y: cy };
+    }
+
+    function rand(min, max){ return min + Math.random() * (max - min); }
+    function pick(arr){ return arr[(Math.random() * arr.length) | 0]; }
+
+    function spawnStars(x, y, dx, dy){
+      if (!starRunning) return;
+
+      const dirLen = Math.hypot(dx, dy) || 1;
+      const ndx = dx / dirLen;
+      const ndy = dy / dirLen;
+
+      for (let i = 0; i < STAR_SPAWN_RATE; i++){
+        if (starParticles.length >= STAR_MAX) starParticles.shift();
+
+        const ox = rand(-10, 10);
+        const oy = rand(-10, 10);
+
+        const speed = rand(STAR_SPEED_MIN, STAR_SPEED_MAX);
+        const spread = rand(0.35, 1.1);
+
+        const vx = (ndx * speed * rand(0.6, 1.2)) + rand(-spread, spread);
+        const vy = (ndy * speed * rand(0.6, 1.2)) + rand(-spread, spread);
+
+        const life = rand(STAR_LIFE_MIN, STAR_LIFE_MAX);
+
+        starParticles.push({
+          x: x + ox,
+          y: y + oy,
+          px: x + ox,
+          py: y + oy,
+          vx,
+          vy,
+          t: 0,
+          life,
+          size: rand(0.7, 2.0),
+          glow: rand(2.5, 7.5),
+          color: pick(STAR_COLORS),
+          twist: rand(-0.03, 0.03)
+        });
+      }
+    }
+
+    function drawParticle(p, alpha){
+      starCtx.save();
+      starCtx.globalCompositeOperation = "lighter";
+      starCtx.globalAlpha = alpha;
+
+      starCtx.shadowBlur = p.glow;
+      starCtx.shadowColor = p.color;
+
+      starCtx.strokeStyle = p.color;
+      starCtx.lineWidth = Math.max(0.6, p.size);
+      starCtx.beginPath();
+      starCtx.moveTo(p.px, p.py);
+      starCtx.lineTo(p.x, p.y);
+      starCtx.stroke();
+
+      starCtx.fillStyle = p.color;
+      starCtx.beginPath();
+      starCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      starCtx.fill();
+
+      starCtx.restore();
+    }
+
+    let lastFrame = performance.now();
+    function tickStars(now){
+      if (!starCtx) return;
+
+      const dt = now - lastFrame;
+      lastFrame = now;
+
+      starCtx.clearRect(0, 0, BASE_W, BASE_H);
+
+      const next = [];
+      for (const p of starParticles){
+        p.t += dt;
+        if (p.t >= p.life) continue;
+
+        const u = p.t / p.life;
+        const alpha = (u < 0.15)
+          ? (u / 0.15) * 0.9
+          : (u < 0.75)
+            ? 0.9
+            : (1 - (u - 0.75) / 0.25) * 0.9;
+
+        const tvx = p.vx - p.vy * p.twist;
+        const tvy = p.vy + p.vx * p.twist;
+
+        p.px = p.x;
+        p.py = p.y;
+
+        p.x += tvx * (dt / 16.67);
+        p.y += tvy * (dt / 16.67);
+
+        drawParticle(p, alpha);
+        next.push(p);
+      }
+
+      starParticles = next;
+      requestAnimationFrame(tickStars);
+    }
+
+    if (starCanvas && starCtx){
+      window.addEventListener("mousemove", (e) => {
+        const pos = getLocalPosFromEvent(e);
+        if (!pos) { lastMouse = null; return; }
+
+        if (!lastMouse){
+          lastMouse = { x: pos.x, y: pos.y };
+          spawnStars(pos.x, pos.y, 1, 0);
+          return;
+        }
+
+        const dx = pos.x - lastMouse.x;
+        const dy = pos.y - lastMouse.y;
+
+        if (Math.hypot(dx, dy) >= 0.8){
+          spawnStars(pos.x, pos.y, dx, dy);
+          lastMouse = { x: pos.x, y: pos.y };
+        }
+      });
+
+      window.addEventListener("touchmove", (e) => {
+        const t = e.touches?.[0];
+        if (!t) return;
+        const pos = getLocalPosFromEvent(t);
+        if (!pos) return;
+        spawnStars(pos.x, pos.y, 1, 0);
+      }, { passive: true });
+
+      requestAnimationFrame(tickStars);
+    }
 
     window.setMoodColor = setMoodColor;
 
