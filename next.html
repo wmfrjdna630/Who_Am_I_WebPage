@@ -92,11 +92,24 @@
           />
         </div>
 
-        <div class="cloud-text cloud-text-1" id="cloudText1"></div>
+        <div class="friends-overlay white-transition" id="friendsOverlay" aria-hidden="true">
+  <div class="black-fill"></div>
 
-        <div class="cloud-text cloud-text-2" id="cloudText2">
-          당신을 초대할게요!
-        </div>
+  <img
+    class="black-cloud"
+    id="blackCloud"
+    src="./assets/white_cloud.png"
+    alt=""
+    draggable="false"
+  />
+
+  <!-- ✅ 텍스트를 overlay 안으로 이동 -->
+  <div class="cloud-text cloud-text-1" id="cloudText1"></div>
+
+  <div class="cloud-text cloud-text-2" id="cloudText2">
+    당신을 초대할게요!
+  </div>
+</div>
 
         <canvas class="next-draw" id="drawCanvas" width="1440" height="1024" aria-hidden="true"></canvas>
 
