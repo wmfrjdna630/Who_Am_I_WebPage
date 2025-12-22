@@ -404,7 +404,7 @@
 
     // ✅ [ADD] 톤매핑/노출: 실내가 너무 어두운 문제 완화
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0; // <- 너무 밝으면 1.15~1.2로 낮추면 됨
+    renderer.toneMappingExposure = 0.8;
 
     renderer.setClearColor(new THREE.Color(BG_COLOR), 0);
 
@@ -832,6 +832,9 @@
           const mats = Array.isArray(m) ? m : [m];
           for (const mat of mats){
             if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
+            if (typeof mat.envMapIntensity === "number") {
+              mat.envMapIntensity = Math.min(mat.envMapIntensity, 1);
+            }
             mat.needsUpdate = true;
           }
         });
