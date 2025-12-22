@@ -388,7 +388,8 @@
     // =========================
     // ✅ 배경: 흰색
     // =========================
-    const BG_COLOR = "#FFFFFF";
+    const BG_COLORS = ["#F7E7EE", "#FFF1E6", "#EEE9FF"];
+    const BG_COLOR = BG_COLORS[(Math.random() * BG_COLORS.length) | 0];
     canvas.style.background = BG_COLOR;
 
     // =========================
