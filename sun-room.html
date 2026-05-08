@@ -438,13 +438,13 @@
     hemi.position.set(0, 2, 0);
     scene.add(hemi);
 
-    const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.6);
     dir.position.set(2.5, 3.5, 2.0);
     scene.add(dir);
 
     // ✅ [TWEAK] 실내 보조광 조금 올림
-    const interiorLight = new THREE.PointLight(0xfff2d9, 1.1, 9.0, 2.0);
-    interiorLight.position.set(0, 1.15, 0.45);
+    const interiorLight = new THREE.PointLight(0xfff2d9, 1.0, 9.0, 2.0);
+    interiorLight.position.set(0, 1.3, 0.45);
     scene.add(interiorLight);
 
     // =========================
@@ -833,7 +833,7 @@
           for (const mat of mats){
             if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
             if (typeof mat.envMapIntensity === "number") {
-              mat.envMapIntensity = Math.min(mat.envMapIntensity, 1);
+              mat.envMapIntensity = 0.6;
             }
             mat.needsUpdate = true;
           }
